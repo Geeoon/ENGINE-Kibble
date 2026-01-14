@@ -1,0 +1,26 @@
+services:
+  main:
+    image: kibble-main:latest
+    container_name: kibble-main-container
+    networks:
+      kibble-sim-network:
+        ipv4_address: 10.1.0.0
+    build:
+      context: ./main
+      dockerfile: Dockerfile
+  secondary:
+    image: kibble-secondary:latest
+    networks:
+      - kibble-sim-network
+    build:
+      context: ./secondary
+      dockerfile: Dockerfile
+
+networks:
+  kibble-sim-network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 10.0.0.0/8
+          ip_range: 10.128.0.0/9
+
