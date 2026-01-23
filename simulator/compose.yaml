@@ -2,12 +2,19 @@ services:
   main:
     image: kibble-main:latest
     container_name: kibble-main-container
+    environment:
+      - CONN_STR=mongodb://root:password@mongodb
     networks:
       kibble-sim-network:
         ipv4_address: 10.1.0.0
     build:
       context: ./main
       dockerfile: Dockerfile
+    depends_on:
+      - database
+    extra_hosts:
+      - "database:10.1.0.2"
+
   secondary:
     image: kibble-secondary:latest
     networks:
@@ -15,6 +22,19 @@ services:
     build:
       context: ./secondary
       dockerfile: Dockerfile
+  database:
+    image: mongodb/mongodb-community-server:8.2.3-ubi8
+    environment:
+      - MONGO_INITDB_ROOT_USERNAME=root
+      - MONGO_INITDB_ROOT_PASSWORD=password
+    container_name: kibble-mongodb
+    networks:
+      kibble-sim-network:
+        ipv4_address: 10.1.0.2
+    volumes:
+      - type: bind
+        source: ./db
+        target: /data/db
 
 networks:
   kibble-sim-network:
@@ -23,4 +43,3 @@ networks:
       config:
         - subnet: 10.0.0.0/8
           ip_range: 10.128.0.0/9
-

@@ -36,13 +36,19 @@ if [ $# -ge 1 ]; then
     num_computers=$1
 fi
 
+# create db dir with correct perms
+mkdir -p db
+sudo chmod 777 db
+
 docker compose build
 docker compose up --scale secondary=$num_computers -d
 # command below will show IP addresses of running containers, useful for ping
 docker inspect -f '{{.Name}} - {{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' $(docker ps -q)
 docker exec -it $MAIN_CONTAINER_NAME sh
-docker compose down
+docker compose down -v
 
 # for future reference:
 # kill containers using: docker kill <container name>
 # ping using: ping <ip address>
+# prune docker: docker system prune --volumes
+# connect to db using `mongosh mongodb://root:password@database`
