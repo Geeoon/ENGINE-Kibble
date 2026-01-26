@@ -41,14 +41,20 @@ mkdir -p db
 sudo chmod 777 db
 
 docker compose build
+# stop if there is an error building
+if [ $? -ne 0 ]; then
+    echo Unable to build containers
+    exit 1
+fi
+
 docker compose up --scale secondary=$num_computers -d
 # command below will show IP addresses of running containers, useful for ping
 docker inspect -f '{{.Name}} - {{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' $(docker ps -q)
-docker exec -it $MAIN_CONTAINER_NAME sh
+docker exec -it $MAIN_CONTAINER_NAME bash
 docker compose down -v
 
 # for future reference:
 # kill containers using: docker kill <container name>
 # ping using: ping <ip address>
 # prune docker: docker system prune --volumes
-# connect to db using `mongosh mongodb://root:password@database`
+# connect to db using `mongosh $CONN_STR`
