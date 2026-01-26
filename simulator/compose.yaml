@@ -3,7 +3,7 @@ services:
     image: kibble-main:latest
     container_name: kibble-main-container
     environment:
-      - CONN_STR=mongodb://root:password@database
+      - CONN_STR=mongodb://root:password@database.internal
     networks:
       kibble-sim-network:
         ipv4_address: 10.1.0.0
@@ -12,8 +12,8 @@ services:
       dockerfile: ./simulator/main/Dockerfile
     depends_on:
       - database
-    extra_hosts:
-      - "database:10.1.0.2"
+    # extra_hosts:
+    #   - "database:database.internal"
 
   secondary:
     image: kibble-secondary:latest
@@ -31,6 +31,8 @@ services:
     networks:
       kibble-sim-network:
         ipv4_address: 10.1.0.2
+        aliases:
+          - database.internal
     volumes:
       - type: bind
         source: ./db
