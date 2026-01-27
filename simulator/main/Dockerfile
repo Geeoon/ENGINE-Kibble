@@ -11,14 +11,15 @@ RUN dnf install -y iputils python3.12
 ADD https://repo.mongodb.org/yum/redhat/8Server/mongodb-org/8.2/x86_64/RPMS/mongodb-mongosh-2.6.0.x86_64.rpm .
 RUN dnf install -y mongodb-mongosh-2.6.0.x86_64.rpm && rm mongodb-mongosh-2.6.0.x86_64.rpm
 
-# add source code to home directory
-WORKDIR /root
-COPY ./src ./src
-WORKDIR ./src
+WORKDIR /root/src
 
 # install python dependencies
 RUN python3 -m ensurepip --upgrade
+COPY ./src/requirements.txt .
 RUN python3 -m pip install -r requirements.txt
+
+# add source code to home directory
+COPY ./src .
 
 # read /dev/null forever, busy loop to prevent container from automatically
 # stopping itself
