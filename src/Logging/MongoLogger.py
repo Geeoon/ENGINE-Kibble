@@ -13,9 +13,18 @@ class MongoLogger(Logger):
     """
     def __init__(self, db_name: str, collection: str, host: str='database.internal', port: int=27017, user: str='root', passwd: str='password'):
         self.client = MongoClient(f"mongodb://{user}:{passwd}@{host}:{port}")
+        self.client.admin.command('ping')  # can raise ConnectionFailure
+        self.db = self.client[db_name]
+        self.collection = self.db[collection]
 
     def log(self, data: dict, level: LogLevel=LogLevel.INFO) -> bool:
-        return True
+        ret = self.collection.insert_one(data | { "level": level.value[1] })
+        return True if ret.inserted_id else False
+
+    def log_many(self, data: list[dict], levels: list[LogLevel]=[]) -> bool:
+        assert(len(data) == len(levels))
+        ret = self.collection.insert_many([d | { "level": l.value[1] } for d, l in zip(data, levels)])
+        return True if ret.inserted_ids else False
     
     def close_connection(self):
         self.client.close()

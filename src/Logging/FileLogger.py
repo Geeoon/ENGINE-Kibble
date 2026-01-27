@@ -23,6 +23,13 @@ class FileLogger(Logger):
         self._fd.write(f"{level}: {data}\n")
         return True
     
+    def log_many(self, data: list[dict], levels: list[LogLevel]=[]) -> bool:
+        assert(len(data) == len(levels))
+        out = True
+        for d, l in zip(data, levels):
+            out &= self._fd.write(f"{l}: {d}\n")  # Python buffers I/O, so no issues here
+        return out
+    
     def close_file(self):
         if not self._fd.closed:
             self._fd.close()
