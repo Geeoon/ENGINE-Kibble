@@ -58,3 +58,6 @@ docker compose down -v
 # ping using: ping <ip address>
 # prune docker: docker system prune --volumes
 # connect to db using `mongosh $CONN_STR`
+# use kibble 
+# db['events'].deleteMany({})
+# db['events'].find({})
