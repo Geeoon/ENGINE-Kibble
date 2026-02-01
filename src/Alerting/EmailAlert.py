@@ -3,6 +3,9 @@ EmailAlert derived class from Alert
 https://realpython.com/python-send-email/#make-a-csv-file-with-relevant-personal-info
 """
 
+# TODO: Modify kibblealert@gmail.com google account to 
+# allow apps to access it
+
 from .Alert import Alert
 from Logging.Logger import LogLevel
 
@@ -22,8 +25,8 @@ class EmailAlert(Alert):
         smtp_server = "smtp.gmail.com"
         password = input("Type your password and press enter: ") # TODO: Use environment variables
 
-        sender_email = "my@gmail.com"
-        receiver_email = "your@gmail.com"
+        sender_email = "kibblealert@gmail.com"
+        receiver_email = "your@gmail.com" # Add email addresses here
         message = """\
             Subject: Test email
             
