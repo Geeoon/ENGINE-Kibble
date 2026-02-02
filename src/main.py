@@ -6,6 +6,7 @@ import asyncio
 from Logging.ScreenLogger import ScreenLogger
 from Logging.MongoLogger import MongoLogger
 from Logging.Logger import LogLevel
+from Logging.EventSchema import abnormal_ping_event
 from StatusMonitor.Active.ICMPMonitor import ICMPMonitor
 
 screen_logger = ScreenLogger()
@@ -25,7 +26,8 @@ try:
             if res[key]:
                 if not res[key]["alive"]:
                     screen_logger.log(f"{key} endpoint is down!", LogLevel.CRITICAL)
-                    mongo_logger.log(res[key] | {"ip": key}, LogLevel.CRITICAL)
+                    abnormal_event = abnormal_ping_event(key, res[key], LogLevel.CRITICAL) # structuring event data with consistent schema 
+                    mongo_logger.log(abnormal_event, LogLevel.CRITICAL)
         sleep(1)
             
 except KeyboardInterrupt:

@@ -2,8 +2,7 @@
 MongoLogger derived class from Logger
 TODO: discuss to async or not
 """
-
-import time
+import time 
 from pymongo import MongoClient
 
 from .Logger import Logger, LogLevel
@@ -18,6 +17,7 @@ class MongoLogger(Logger):
         self.db = self.client[db_name]
         self.collection = self.db[collection]
 
+    # logging abnormal ping results to MongoDB
     def log(self, data: dict, level: LogLevel=LogLevel.INFO) -> bool:
         ret = self.collection.insert_one(data | { "level": level.value[1], "time": round(time.time() * 1000) })
         return True if ret.inserted_id else False
