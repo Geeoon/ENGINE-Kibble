@@ -18,9 +18,11 @@ class Kibble:
         Initializes the Kibble system
         
         :param monitors: the monitors to use for tracking the endpoints
-        :type monitors: StatusMonitor
+        :type monitors: list[StatusMonitor]
         :param loggers: the loggers to use for logging status
-        :type loggers: Logger
+        :type loggers: list[Logger]
+        :param alerters: the alerts to use for alerting faults
+        :type alerters: list[Alert]
         :param interval: how often to check the status of endpoints in seconds
         :type interval: int
         """
