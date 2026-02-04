@@ -18,7 +18,7 @@ WORKDIR /root/src
 
 # install python dependencies
 RUN python3 -m ensurepip --upgrade
-COPY ./src/requirements.txt .
+COPY ./src/Kibble/requirements.txt .
 RUN python3 -m pip install -r requirements.txt
 
 # add source code to home directory

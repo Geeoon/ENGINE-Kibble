@@ -59,6 +59,10 @@ class StatusMonitor(ABC):
                 self._status.pop(key, None)
             return list(self._status.keys())
     
+    def get_endpoints(self) -> list[str]:
+        with self._status_lock:
+            return list(self._status.keys())
+    
     @abstractmethod
     async def update_status(self):
         """

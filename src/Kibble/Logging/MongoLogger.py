@@ -5,7 +5,7 @@ TODO: discuss to async or not
 import time 
 from pymongo import MongoClient
 
-from .Logger import Logger, LogLevel
+from Kibble.Logging import Logger, LogLevel
 
 class MongoLogger(Logger):
     """
@@ -23,10 +23,10 @@ class MongoLogger(Logger):
         return True if ret.inserted_id else False
 
     def log_many(self, data: list[dict], levels: list[LogLevel]=[]) -> bool:
-        assert(len(data) == len(levels))
+        assert len(data) == len(levels), "Data length and levels length are not the same"
         ret = self.collection.insert_many([d | { "level": l.value[1], "time": round(time.time() * 1000) } for d, l in zip(data, levels)])
         return True if ret.inserted_ids else False
     
-    def close_connection(self):
+    def close(self):
         self.client.close()
 

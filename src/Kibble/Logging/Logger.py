@@ -51,3 +51,9 @@ class Logger(ABC):
         :rtype: bool
         """
         pass
+
+    def close(self):
+        """
+        Abstract method to close a logger
+        """
+        pass

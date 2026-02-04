@@ -1,5 +1,5 @@
 import time
-from .Logger import LogLevel
+from Kibble.Logging import LogLevel
 
 # can add more for different types of events (e.g. high latency, etc.)
 def abnormal_ping_event(endpoint_ip: str, status_data: dict, severity: LogLevel = LogLevel.CRITICAL) -> dict:

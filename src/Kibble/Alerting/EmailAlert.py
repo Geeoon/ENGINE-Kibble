@@ -4,12 +4,12 @@ EmailAlert derived class from Alert
 
 
 # TODO: Decide the structure of the email alert
-from .Alert import Alert
-from Logging.Logger import LogLevel
 import os
 import smtplib, ssl
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
+from Kibble.Alerting import Alert
+from Kibble.Logging import LogLevel
 
 class EmailAlert(Alert):
     """

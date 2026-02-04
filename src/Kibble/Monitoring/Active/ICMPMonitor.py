@@ -1,6 +1,5 @@
 """
 Implements the ICMPMonitor
-TODO: discuss possibly using ARP broadcast
 """
 
 import asyncio
@@ -9,7 +8,7 @@ from concurrent.futures import ThreadPoolExecutor
 from scapy.layers.inet import IP, ICMP
 from scapy.sendrecv import sr1
 
-from ..StatusMonitor import StatusMonitor
+from Kibble.Monitoring import StatusMonitor
 
 class ICMPMonitor(StatusMonitor):
     """

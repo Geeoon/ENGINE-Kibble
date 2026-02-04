@@ -2,7 +2,7 @@
 FileLogger derived class from Logger
 """
 
-from .Logger import Logger, LogLevel
+from Kibble.Logging import Logger, LogLevel
 
 class FileLogger(Logger):
     """
@@ -24,12 +24,12 @@ class FileLogger(Logger):
         return True
     
     def log_many(self, data: list[dict], levels: list[LogLevel]=[]) -> bool:
-        assert(len(data) == len(levels))
+        assert len(data) == len(levels), "Data length and levels length are not the same"
         out = True
         for d, l in zip(data, levels):
             out &= self._fd.write(f"{l}: {d}\n")  # Python buffers I/O, so no issues here
         return out
     
-    def close_file(self):
+    def close(self):
         if not self._fd.closed:
             self._fd.close()

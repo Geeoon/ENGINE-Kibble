@@ -2,7 +2,7 @@
 ScreenLogger derived class from Logger
 """
 
-from .Logger import Logger, LogLevel
+from Kibble.Logging import Logger, LogLevel
 
 class ScreenLogger(Logger):
     """
@@ -13,7 +13,7 @@ class ScreenLogger(Logger):
         return True
     
     def log_many(self, data: list[dict], levels: list[LogLevel]=[]) -> bool:
-        assert(len(data) == len(levels))
+        assert len(data) == len(levels), "Data length and levels length are not the same"
         for d, l in zip(data, levels):
             self.log(d, l)
         return True

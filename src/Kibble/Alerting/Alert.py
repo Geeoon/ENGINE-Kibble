@@ -3,7 +3,7 @@ Alert base class
 """
 
 from abc import ABC, abstractmethod
-from Logging.Logger import LogLevel
+from Kibble.Logging import LogLevel
 
 class Alert(ABC):
     """
