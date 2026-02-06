@@ -1,7 +1,7 @@
 # ENGINE Capstone
 # Blank container to serve as the monitoring computer.  Starts and does nothing
 
-FROM redhat/ubi8:8.10
+FROM redhat/ubi8:8.10-1770223225
 
 # install tools
 WORKDIR /tmp
