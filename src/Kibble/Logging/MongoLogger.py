@@ -41,9 +41,9 @@ class MongoLogger(Logger):
 
     def log_many(self, data: list[dict], levels: list[LogLevel]=[]) -> bool:
         assert len(data) == len(levels), "Data length and levels length are not the same"
-        for d, l in zip(data, levels):
-            self.log(d | {"level": l.value[1]})
-        return True
+        ret = self.collection.insert_many([d| {"level": l.value[1]} for d, l in zip(data, levels)])
+        return True if ret.inserted_ids else False
+    
     
     def log_device(self, data: dict) -> bool:
         ret = self.devices_collection.insert_one(data)
