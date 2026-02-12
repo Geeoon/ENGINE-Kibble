@@ -7,7 +7,7 @@ from Kibble.Alerting import EmailAlert, ScreenAlert
 from Kibble import Kibble
 
 screen_logger = ScreenLogger()
-mongo_logger = MongoLogger('kibble', 'events')
+mongo_logger = MongoLogger('kibble')
 screen_alert = ScreenAlert()
 email_alert = EmailAlert()
 
