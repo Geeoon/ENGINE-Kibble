@@ -8,6 +8,9 @@ from Kibble import Kibble
 
 screen_logger = ScreenLogger()
 mongo_logger = MongoLogger('kibble')
+
+# Adding device type for ICMP logging 
+mongo_logger.ensure_device_type("device 1", ["ICMP"])
 screen_alert = ScreenAlert()
 email_alert = EmailAlert()
 

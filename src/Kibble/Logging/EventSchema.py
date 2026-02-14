@@ -1,26 +1,45 @@
-import time
 import datetime
+from typing import Optional
+
+from bson import ObjectId  # type: ignore[import-untyped]
+
 from Kibble.Logging import LogLevel
 
-# can add more for different types of events (e.g. high latency, etc.)
-def ping_event(endpoint_ip: str, status_data: dict, severity: LogLevel = LogLevel.CRITICAL) -> dict:
+
+def ICMP(endpoint_ip: str, status_data: dict, severity: LogLevel = LogLevel.CRITICAL, device_id: Optional[ObjectId] = None) -> dict:
     timestamp = datetime.datetime.now(datetime.timezone.utc)
-    return {
+    endpoint: dict = {"ip": endpoint_ip}
+    doc: dict = {
         "timestamp": timestamp,
         "event_type": "endpoint_down",
-        "endpoint": {
-            "ip": endpoint_ip
-        },
+        "endpoint": endpoint,
         "status": {
             "alive": status_data.get("alive", False),
             "latency_ms": status_data.get("latency", 0),
-            "last_updated_ms": status_data.get("last_updated", timestamp.isoformat())
-        }
+            "last_updated_ms": status_data.get("last_updated", timestamp.isoformat()),
+        },
+        "severity_level": severity.value[0],
+    }
+    if device_id is not None:
+        doc["device_id"] = device_id
+    return doc
+
+def device_info(device_type: str, endpoint_ip: str, status_data: dict ):
+    return {
+        "device_type": device_type,
+        "device_ip": endpoint_ip, # device ip from the database # need ot make capable of supporting multiple?
+        "hostname": status_data.get("hostname", ""), 
+        "mac_address": status_data.get("mac_address", ""),
     }
 
-def device_info(endpoint_ip: str, status_data: dict ):
-    timestamp_ms = round(time.time() * 1000)
+
+#FIX/REVIEW 
+def device_types(name: str, protocols_supported: list[str]):
     return {
-        "device_ip": endpoint_ip,
-        "hostname": status_data.get("hostname", ""),
+        "name": name,
+        "protocols_supported": list(protocols_supported),
     }
+
+# retrieve hostname if no hostname, ip address as fallback 
+# mac address 
+
