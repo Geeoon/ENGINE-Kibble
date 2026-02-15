@@ -1,11 +1,9 @@
 # Main python script
 
 from Kibble import Kibble
-from Kibble.Logging import ScreenLogger
 from Kibble.Monitoring.Active import ICMPMonitor
 from Kibble.Alerting import EmailAlert, ScreenAlert
 from Kibble.Logging import MongoHandler
-# from Kibble.Logging import MongoLogger
 import logging
 
 # set up loggers
