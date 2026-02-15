@@ -58,10 +58,11 @@ class MongoHandler(logging.Handler):
         self._batch_thread.start()
 
     def emit(self, record):
-        # TODO: check if record.status exists
+        if not hasattr(record, "status"):
+            raise AttributeError("Record must have the status attribute")
         data = record.status
-        # TODO handle data not dict type
-        assert type(data) == dict, "MongoHandler only takes dict for status"
+        if not type(data) == dict:
+            raise TypeError("MongoHandler only takes dict for status")
         # TODO: ensure data has timestamp key properly formatted
         level = record.levelno
         self._add_to_batch(data, level)
@@ -75,7 +76,7 @@ class MongoHandler(logging.Handler):
             if len(self._batch) != 0:
                 ret = self.events_collection.insert_many([d | {"level": l} for d, l in self._batch])
                 if not ret.inserted_ids:
-                    raise Exception  # TODO: change to a different exception
+                    raise Exception("Failed to insert into database")  # TODO: replace with better exception
                 self._batch.clear()
         self._batch_thread = threading.Timer(self.update_frequency, self._send_batch)
         self._batch_thread.daemon = True
