@@ -28,10 +28,10 @@ class Kibble:
         :param interval: how often to check the status of endpoints in seconds
         :type interval: int
         """
-        self.maintainence_logger = logging.getLogger("Kibble_Maintainence")
+        self.maintainance_logger = logging.getLogger("Kibble_Maintainance")
         self.logger = logging.getLogger("Kibble_Status")
 
-        self.maintainence_logger.debug("Starting the Kibble service")
+        self.maintainance_logger.debug("Starting the Kibble service")
         if len(monitors) < 1:
             raise ValueError("You must have at least 1 monitor")
 
@@ -56,21 +56,21 @@ class Kibble:
                 end_time = time.time()
                 behind = end_time - start_time > self.interval
                 if behind:
-                    self.maintainence_logger.warning(f"Kibble service is lagging behind scanning interval")
+                    self.maintainance_logger.warning(f"Kibble service is lagging behind scanning interval")
 
                 self._send_to_loggers(logs, levels)
 
                 # send alerts if needed
                 alerts = self.detector.get_alerts()
                 for endpoint in alerts.keys():
-                    self.maintainence_logger.info(f"Sending alert(s)")
+                    self.maintainance_logger.info(f"Sending alert(s)")
                     for alerter in self.alerters:
                         alerter.alert(f"ALERT FOR {endpoint}", alerts[endpoint]['level'])
 
                 # wait until next interval
                 if not behind:
                     sleep_time = self.interval - end_time + start_time
-                    self.maintainence_logger.debug(f"Waiting {round(sleep_time, 1)} seconds until scanning again")
+                    self.maintainance_logger.debug(f"Waiting {round(sleep_time, 1)} seconds until scanning again")
                     time.sleep(sleep_time)
         except KeyboardInterrupt:
             self._end("user ended (KeyboardInterrupt)")
@@ -79,9 +79,9 @@ class Kibble:
             raise e
 
     async def _rescan(self):
-        self.maintainence_logger.debug("Starting a network scan")
+        self.maintainance_logger.debug("Starting a network scan")
         await asyncio.gather(*[monitor.update_status() for monitor in self.monitors])
-        self.maintainence_logger.debug("Finished scanning network")
+        self.maintainance_logger.debug("Finished scanning network")
 
     def _get_logs(self):
         logs: list[dict] = []
@@ -100,14 +100,14 @@ class Kibble:
 
     def _send_to_loggers(self, logs: list[dict], levels: list[LogLevel]):
         for log, level in zip(logs, levels):
-            self.maintainence_logger.debug("Sending logs")
+            self.maintainance_logger.debug("Sending logs")
             self.logger.log(int(level), log, extra={ "status": log })
 
-        # TODO: make maintainence logger
+        # TODO: make maintainance logger
         # if behind:
         #     logger.log({"msg": "Kibble did not meet the status interval requirement!"}, LogLevel.DEBUG)
                         
     def _end(self, msg: str=""):
-        # TODO: make maintainence logger
+        # TODO: make maintainance logger
         # self.logger.log({"msg": f"Kibble shutting down: {msg}"})
-        self.maintainence_logger.debug(msg)
+        self.maintainance_logger.debug(msg)

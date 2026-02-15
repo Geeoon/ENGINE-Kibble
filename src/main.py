@@ -31,21 +31,21 @@ mongo_status_handler.setLevel(logging.INFO)
 status_logger.addHandler(file_status_handler)  # keep on disk in case the database goes down
 status_logger.addHandler(mongo_status_handler)
 
-# logger for maintainence
-maintainence_logger = logging.getLogger("Kibble_Maintainence")
-maintainence_logger.setLevel(logging.DEBUG)
-maintainence_logger.propagate = True
+# logger for maintainance
+maintainance_logger = logging.getLogger("Kibble_Maintainance")
+maintainance_logger.setLevel(logging.DEBUG)
+maintainance_logger.propagate = True
 # screen logging
-screen_maintainence_handler = logging.StreamHandler()
-screen_maintainence_handler.setLevel(logging.NOTSET)
-screen_maintainence_handler.setFormatter(formatter)
+screen_maintainance_handler = logging.StreamHandler()
+screen_maintainance_handler.setLevel(logging.NOTSET)
+screen_maintainance_handler.setFormatter(formatter)
 # file logging
-file_maintainence_handler = logging.FileHandler("./kibble.log")
-file_maintainence_handler.setLevel(logging.NOTSET)
-file_maintainence_handler.setFormatter(formatter)
+file_maintainance_handler = logging.FileHandler("./kibble.log")
+file_maintainance_handler.setLevel(logging.NOTSET)
+file_maintainance_handler.setFormatter(formatter)
 # attach loggers
-maintainence_logger.addHandler(screen_maintainence_handler)  # just for debugging
-maintainence_logger.addHandler(file_maintainence_handler)  # keep a log of the program in case something goes wrong
+maintainance_logger.addHandler(screen_maintainance_handler)  # just for debugging
+maintainance_logger.addHandler(file_maintainance_handler)  # keep a log of the program in case something goes wrong
 
 screen_alert = ScreenAlert()  # TODO: replace with logger possibly
 email_alert = EmailAlert()
