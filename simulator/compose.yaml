@@ -40,6 +40,7 @@ services:
       - type: bind
         source: ./db
         target: /data/db
+    stop_grace_period: 1s  # takes way too long without it
 
 networks:
   kibble-sim-network:

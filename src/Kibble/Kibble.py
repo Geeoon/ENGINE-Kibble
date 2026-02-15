@@ -2,10 +2,11 @@
 Overall system implementation
 """
 
+import logging
 import time
 import asyncio
 
-from Kibble.Logging import Logger, LogLevel, abnormal_ping_event
+from Kibble.Logging import Logger, LogLevel, ping_event
 from Kibble.Monitoring import StatusMonitor
 from Kibble.Alerting import Alert
 from Kibble.Detecting import Detector, LatencyDetector
@@ -14,14 +15,12 @@ class Kibble:
     """
     Monitors a series of endpoints and logs their status
     """
-    def __init__(self, monitors: list[StatusMonitor]=[], loggers: list[Logger]=[], alerters: list[Alert]=[], detector: Detector=LatencyDetector(), interval: int=10):
+    def __init__(self, monitors: list[StatusMonitor]=[], alerters: list[Alert]=[], detector: Detector=LatencyDetector(), interval: int=10):
         """
         Initializes the Kibble system
         
         :param monitors: the monitors to use for tracking the endpoints
         :type monitors: list[StatusMonitor]
-        :param loggers: the loggers to use for logging status
-        :type loggers: list[Logger]
         :param alerters: the alerts to use for alerting faults
         :type alerters: list[Alert]
         :param detector: the detector to use for determining log levels and alerts
@@ -30,11 +29,11 @@ class Kibble:
         :type interval: int
         """
         assert len(monitors) > 0, "You must have at least 1 monitor"
-        assert len(loggers) > 0, "You must have at least 1 logger"
         for monitor in monitors:
             assert interval > monitor._timeout, "Status interval must be greater than all monitor timeouts"
         self.monitors = monitors
-        self.loggers = loggers
+        self.logger = logging.getLogger("Kibble_Status")
+
         self.alerters = alerters
         self.detector = detector
         self.interval = interval
@@ -82,17 +81,19 @@ class Kibble:
                     # it hasn't been scanned yet
                     continue
                 level = self.detector.get_level(key, log)
-                logs.append(abnormal_ping_event(key, log, level))  # format log
+                logs.append(ping_event(key, log, level))  # format log
                 levels.append(level)
         return logs, levels
 
     def _send_to_loggers(self, logs: list[dict], levels: list[LogLevel], behind: bool):
-        for logger in self.loggers:
-            logger.log_many(logs, levels)
-            if behind:
-                logger.log({"msg": "Kibble did not meet the status interval requirement!"}, LogLevel.DEBUG)
+        for log, level in zip(logs, levels):
+            self.logger.log(int(level), log, extra={ "status": log })
+
+        # TODO: make maintainence logger
+        # if behind:
+        #     logger.log({"msg": "Kibble did not meet the status interval requirement!"}, LogLevel.DEBUG)
                         
     def _end(self, msg: str=""):
-        for logger in self.loggers:
-            logger.log({"msg": f"Kibble shutting down: {msg}"})
-            logger.close()
+        # TODO: make maintainence logger
+        # self.logger.log({"msg": f"Kibble shutting down: {msg}"})
+        pass
