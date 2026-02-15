@@ -5,9 +5,7 @@ Ensure MongoLogger logs fault events with critical severity
 
 import time
 from Kibble.Logging.MongoLogger import MongoLogger
-from Kibble.Logging import LogLevel
-from Kibble.Events import ping_event
-
+from Kibble.Logging import LogLevel, ping_event
 
 def test_log_fault_event():
     """
@@ -15,7 +13,6 @@ def test_log_fault_event():
     """
     logger = MongoLogger(
         db_name='kibble_test',
-        collection='events',
         host='database.internal',
         port=27017,
         user='root',
@@ -32,7 +29,6 @@ def test_log_fault_event():
     result = logger.log(event, LogLevel.CRITICAL)
     assert result == True, 'log() should return True for fault events'
     
-    # query database
     logged_event = logger.events_collection.find_one(
         {'endpoint.ip': '192.168.1.101'}
     )
@@ -43,11 +39,10 @@ def test_log_fault_event():
     assert logged_event['status']['latency_ms'] == 0, 'Latency should be 0 for down device'
     assert 'timestamp' in logged_event, 'Timestamp should be present'
     
-    # cleanup/close connection
     logger.events_collection.delete_many({})
     logger.close()
 
-    print('DB Test 3: PASS - Fault event logged successfully')
+    print('DB Test 2: PASS - Fault event logged successfully')
 
 
 if __name__ == '__main__':

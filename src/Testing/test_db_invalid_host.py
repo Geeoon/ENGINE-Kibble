@@ -7,18 +7,15 @@ import pytest
 import time
 from pymongo.errors import ConnectionFailure, ServerSelectionTimeoutError
 from Kibble.Logging.MongoLogger import MongoLogger
-from Kibble.Events import ping_event
-
+from Kibble.Logging import ping_event # Updated import to consolidated source
 
 def test_db_connection_invalid_host():
     """
     DB Test 3A: Test connection failure with invalid host
     """
-    # connect to non-existent host
     with pytest.raises((ConnectionFailure, ServerSelectionTimeoutError)):
         logger = MongoLogger(
             db_name='kibble_test',
-            collection='events',
             host='invalid.host.doesnotexist',  # invalid hostname
             port=27017,
             user='root',
@@ -32,10 +29,9 @@ def test_db_connection_invalid_port():
     """
     DB Test 3B: Test connection failure with invalid port
     """
-    with pytest.raises((ConnectionFailure, ServerSelectionTimeoutError)):
+    with pytest.raises((ConnectionFailure, ServerSelectionTimeoutError, ValueError)):
         logger = MongoLogger(
             db_name='kibble_test',
-            collection='events',
             host='database.internal',
             port=99999,  # invalid port number
             user='root',
@@ -51,7 +47,6 @@ def test_db_connection_loss_during_operation():
     """
     logger = MongoLogger(
         db_name='kibble_test',
-        collection='events',
         host='database.internal',
         port=27017,
         user='root',

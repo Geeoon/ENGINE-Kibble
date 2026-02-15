@@ -5,7 +5,7 @@ Overall system implementation
 import time
 import asyncio
 
-from Kibble.Logging import Logger, LogLevel, abnormal_ping_event
+from Kibble.Logging import Logger, LogLevel, ping_event
 from Kibble.Monitoring import StatusMonitor
 from Kibble.Alerting import Alert
 from Kibble.Detecting import Detector, LatencyDetector
@@ -82,7 +82,7 @@ class Kibble:
                     # it hasn't been scanned yet
                     continue
                 level = self.detector.get_level(key, log)
-                logs.append(abnormal_ping_event(key, log, level))  # format log
+                logs.append(ping_event(key, log, level))
                 levels.append(level)
         return logs, levels
 

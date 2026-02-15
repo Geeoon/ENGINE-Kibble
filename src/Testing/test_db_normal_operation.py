@@ -5,10 +5,7 @@ Ensure MongoLogger logs normal monitoring data to collection
 
 import time
 from Kibble.Logging.MongoLogger import MongoLogger
-from Kibble.Logging import LogLevel
-from Kibble.Events import ping_event
-
-
+from Kibble.Logging import LogLevel, ping_event # Updated import to match new source
 
 def test_log_normal_operation():
     """
@@ -16,7 +13,6 @@ def test_log_normal_operation():
     """
     logger = MongoLogger(
         db_name='kibble_test',
-        collection='events',
         host='database.internal',
         port=27017,
         user='root',
@@ -33,6 +29,7 @@ def test_log_normal_operation():
     result = logger.log(event, LogLevel.INFO)
     
     assert result == True, 'log() should return True on successful insert'
+    
     logged_event = logger.events_collection.find_one(
         {'endpoint.ip': '192.168.1.100'}
     )
@@ -44,7 +41,6 @@ def test_log_normal_operation():
     assert logged_event['status']['latency_ms'] == 25, 'Latency should be 25ms'
     assert 'timestamp' in logged_event, 'Timestamp field should be present'
     
-    # cleanup/close connection
     logger.events_collection.delete_many({})
     logger.close()
 
