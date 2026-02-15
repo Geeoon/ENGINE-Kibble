@@ -8,12 +8,13 @@ import asyncio
 from Kibble.Logging import Logger, LogLevel, abnormal_ping_event
 from Kibble.Monitoring import StatusMonitor
 from Kibble.Alerting import Alert
+from Kibble.Detecting import Detector, LatencyDetector
 
 class Kibble:
     """
     Monitors a series of endpoints and logs their status
     """
-    def __init__(self, monitors: list[StatusMonitor]=[], loggers: list[Logger]=[], alerters: list[Alert]=[], interval: int=10):
+    def __init__(self, monitors: list[StatusMonitor]=[], loggers: list[Logger]=[], alerters: list[Alert]=[], detector: Detector=LatencyDetector(), interval: int=10):
         """
         Initializes the Kibble system
         
@@ -23,6 +24,8 @@ class Kibble:
         :type loggers: list[Logger]
         :param alerters: the alerts to use for alerting faults
         :type alerters: list[Alert]
+        :param detector: the detector to use for determining log levels and alerts
+        :type detector: Detector
         :param interval: how often to check the status of endpoints in seconds
         :type interval: int
         """
@@ -33,6 +36,7 @@ class Kibble:
         self.monitors = monitors
         self.loggers = loggers
         self.alerters = alerters
+        self.detector = detector
         self.interval = interval
 
     def run(self):
@@ -49,15 +53,20 @@ class Kibble:
                 
                 self._send_to_loggers(logs, levels, behind)
                 
-                # TODO: determine if an alert is needed
+                # send alerts if needed
+                alerts = self.detector.get_alerts()
+                for endpoint in alerts.keys():
+                    for alerter in self.alerters:
+                        alerter.alert(f"ALERT FOR {endpoint}", alerts[endpoint]['level'])
+
                 # wait until next interval
                 if not behind:
-                    print(f"Sleeping for {self.interval - end_time + start_time}")
                     time.sleep(self.interval - end_time + start_time)
         except KeyboardInterrupt:
             self._end("user ended (KeyboardInterrupt)")
         except Exception as e:
             self._end(str(e))
+            raise e
 
     async def _rescan(self):
         await asyncio.gather(*[monitor.update_status() for monitor in self.monitors])
@@ -67,15 +76,13 @@ class Kibble:
         levels: list[LogLevel] = []
         for monitor in self.monitors:
             res = monitor.get_status()
-            print(res)
             for key in res.keys():
-                if not res[key]:
+                log = res[key]
+                if not log:
                     # it hasn't been scanned yet
                     continue
-                level = LogLevel.INFO
-                if not res[key]["alive"]:
-                    level = LogLevel.CRITICAL
-                logs.append(abnormal_ping_event(key, res[key], level))
+                level = self.detector.get_level(key, log)
+                logs.append(abnormal_ping_event(key, log, level))  # format log
                 levels.append(level)
         return logs, levels
 
@@ -85,7 +92,6 @@ class Kibble:
             if behind:
                 logger.log({"msg": "Kibble did not meet the status interval requirement!"}, LogLevel.DEBUG)
                         
-
     def _end(self, msg: str=""):
         for logger in self.loggers:
             logger.log({"msg": f"Kibble shutting down: {msg}"})

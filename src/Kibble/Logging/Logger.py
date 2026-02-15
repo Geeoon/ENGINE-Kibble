@@ -15,6 +15,17 @@ class LogLevel(Enum):
 
     def __str__(self):
         return f"[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')} | {self.value[0].upper()}]"
+
+    def __lt__(self, other):
+        if not isinstance(other, LogLevel):
+            raise NotImplemented
+        # intentionally backwards to make comparisons easier to understand
+        return int(self) > int(other)
+
+    def __eq__(self, other):
+        if not isinstance(other, LogLevel):
+            raise NotImplemented
+        return int(self) == int(other)
     
     def __int__(self):
         return self.value[1]

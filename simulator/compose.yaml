@@ -12,9 +12,7 @@ services:
       dockerfile: ./simulator/main/Dockerfile
     depends_on:
       - database
-    # extra_hosts:
-    #   - "database:database.internal"
-
+    stop_grace_period: 1s  # infinite looping will not respond to SIGTERM
   secondary:
     image: kibble-secondary:latest
     networks:
@@ -22,6 +20,9 @@ services:
     build:
       context: ./secondary
       dockerfile: Dockerfile
+    cap_add:
+      - NET_ADMIN  # for traffic control
+    stop_grace_period: 1s  # infinite looping will not respond to SIGTERM
   database:
     image: mongodb/mongodb-community-server:8.2.3-ubi8
     environment:

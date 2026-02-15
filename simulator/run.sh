@@ -61,3 +61,4 @@ docker compose down -v
 # use kibble 
 # db['events'].deleteMany({})
 # db['events'].find({})
+# add artificial delay with `tc qdisc add dev eth0 root netem delay 500ms`
