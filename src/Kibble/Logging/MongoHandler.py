@@ -52,7 +52,8 @@ class MongoHandler(logging.Handler):
         # instead of logging individually, log in batches
         self._batch: list[tuple[dict, int]] = []
         self._batch_lock = threading.Lock()
-        self._batch_thread = threading.Timer(update_frequency, self._send_batch)
+        self.update_frequency = update_frequency
+        self._batch_thread = threading.Timer(self.update_frequency, self._send_batch)
         self._batch_thread.daemon = True
         self._batch_thread.start()
 
@@ -71,12 +72,14 @@ class MongoHandler(logging.Handler):
 
     def _send_batch(self):
         with self._batch_lock:
-            if len(self._batch) == 0:
-                return
-            ret = self.events_collection.insert_many([d | {"level": l} for d, l in self._batch])
-            self._batch.clear()
-        if not ret.inserted_ids:
-            raise Exception  # TODO: change to a different exception
+            if len(self._batch) != 0:
+                ret = self.events_collection.insert_many([d | {"level": l} for d, l in self._batch])
+                if not ret.inserted_ids:
+                    raise Exception  # TODO: change to a different exception
+                self._batch.clear()
+        self._batch_thread = threading.Timer(self.update_frequency, self._send_batch)
+        self._batch_thread.daemon = True
+        self._batch_thread.start()
         
     def close(self):
         self.flush()
