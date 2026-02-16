@@ -14,7 +14,16 @@ class Kibble:
     """
     Monitors a series of endpoints and logs their status
     """
-    def __init__(self, monitors: list[StatusMonitor]=[], loggers: list[Logger]=[], alerters: list[Alert]=[], detector: Detector=LatencyDetector(), interval: int=10):
+    def __init__(
+        self, 
+        monitors: list[StatusMonitor]=[], 
+        loggers: list[Logger]=[], 
+        alerters: list[Alert]=[], 
+        detector: Detector=LatencyDetector(), 
+        interval: int=10,
+        devices_collection = None,
+        protocol_events_collection = None
+        ):
         """
         Initializes the Kibble system
         
@@ -38,6 +47,13 @@ class Kibble:
         self.alerters = alerters
         self.detector = detector
         self.interval = interval
+        self.devices_collection = devices_collection
+        self.protocol_events_collection = protocol_events_collection
+
+        self.device_index = {}  
+        self.device_id_index = {}
+        self.protocol_cache = {}
+        self._get_devices()
 
     def run(self):
         """
@@ -48,6 +64,9 @@ class Kibble:
                 start_time = time.time()
                 asyncio.run(self._rescan())
                 logs, levels = self._get_logs()
+
+                self._get_protocols()
+
                 end_time = time.time()
                 behind = end_time - start_time > self.interval
                 
@@ -96,3 +115,55 @@ class Kibble:
         for logger in self.loggers:
             logger.log({"msg": f"Kibble shutting down: {msg}"})
             logger.close()
+
+    def _get_devices(self):
+        cursor = self.devices_collection.find({}, {
+            "_id" : 1, "hostname" : 1, "ip_address" : 1, "device_type" : 1})
+        device_index = {}
+        device_id_index = {}
+
+        for device in cursor:
+            hostname = (device.get("hostname") or "").strip()
+            ip = (device.get("ip_address") or "").strip()
+
+            if not hostname and not ip: continue
+
+            data = {
+                "device_id": device["_id"],
+                "device_type": device.get("device_type"),
+                "hostname": hostname or None,
+                "ip_address": ip or None,
+            }
+            
+
+            if hostname: device_index[hostname] = data
+            if ip: device_index[ip] = data
+
+            device_id_index[device["_id"]] = data
+
+        self.device_index = device_index
+        self.device_id_index = device_id_index
+
+    def _get_protocols(self):
+        for device_id, data in self.device_id_index.items():
+            device = self.devices_collection.find_one({"_id": device_id}, {"supported_protocols": 1})
+            protocols = (device or {}).get("supported_protocols", []) or []
+            event_types_by_protocol: dict[str, set] = {}
+
+            if protocols: 
+                cursor = self.protocol_events_collection.find(
+                    {"device_id": device_id, "protocol": {"$in": protocols}},
+                    {"_id": 0, "protocol": 1, "event_type": 1}
+                )
+
+                for event in cursor:
+                    p = event.get("protocol")
+                    e_type = event.get("event_type")
+                    if not p or not e_type:
+                        continue
+                    event_types_by_protocol.setdefault(p, set()).add(e_type)        
+
+            self.protocol_cache[device_id] = {
+                "protocols": protocols,
+                "event_types_by_protocol": {p: sorted(list(s)) for p, s in event_types_by_protocol.items()}
+            }
