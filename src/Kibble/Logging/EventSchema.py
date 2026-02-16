@@ -5,16 +5,24 @@ from bson import ObjectId  # type: ignore[import-untyped]
 
 from Kibble.Logging import LogLevel
 
+# Bump when event shape changes so consumers can branch on version.
+EVENT_SCHEMA_VERSION = 1
 
-def ICMP(endpoint_ip: str, status_data: dict, severity: LogLevel = LogLevel.CRITICAL, device_id: Optional[ObjectId] = None) -> dict:
+# Event types for endpoint status (fixed set for queries/dashboards; aligns with observability conventions).
+EVENT_TYPE_ENDPOINT_UP = "endpoint_up"
+EVENT_TYPE_ENDPOINT_DOWN = "endpoint_down"
+
+
+def ICMP(status_data: dict, severity: LogLevel = LogLevel.CRITICAL, device_id: Optional[ObjectId] = None) -> dict:
     timestamp = datetime.datetime.now(datetime.timezone.utc)
-    endpoint: dict = {"ip": endpoint_ip}
+    alive = status_data.get("alive", False)
+    event_type = EVENT_TYPE_ENDPOINT_UP if alive else EVENT_TYPE_ENDPOINT_DOWN
     doc: dict = {
+        "schema_version": EVENT_SCHEMA_VERSION,
         "timestamp": timestamp,
-        "event_type": "endpoint_down",
-        "endpoint": endpoint,
+        "event_type": event_type,
         "status": {
-            "alive": status_data.get("alive", False),
+            "alive": alive,
             "latency_ms": status_data.get("latency", 0),
             "last_updated_ms": status_data.get("last_updated", timestamp.isoformat()),
         },
@@ -24,13 +32,15 @@ def ICMP(endpoint_ip: str, status_data: dict, severity: LogLevel = LogLevel.CRIT
         doc["device_id"] = device_id
     return doc
 
-def device_info(device_type: str, endpoint_ip: str, status_data: dict ):
-    return {
-        "device_type": device_type,
-        "device_ip": endpoint_ip, # device ip from the database # need ot make capable of supporting multiple?
-        "hostname": status_data.get("hostname", ""), 
+def device_info(device_type_id: Optional[ObjectId], endpoint_ip: str, status_data: dict) -> dict:
+    doc: dict = {
+        "device_ip": endpoint_ip,
+        "hostname": status_data.get("hostname", ""),
         "mac_address": status_data.get("mac_address", ""),
     }
+    if device_type_id is not None:
+        doc["device_type_id"] = device_type_id
+    return doc
 
 
 #FIX/REVIEW 

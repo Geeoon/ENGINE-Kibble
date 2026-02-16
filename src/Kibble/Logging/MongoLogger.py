@@ -3,15 +3,14 @@ MongoLogger derived class from Logger
 TODO: discuss to async or not
 """
 import datetime
-import time
 from typing import Optional
 
-from pymongo import MongoClient
+from pymongo import MongoClient  
 
-from bson import ObjectId  # type: ignore[import-untyped]
+from bson import ObjectId  
 
 from Kibble.Logging import Logger, LogLevel
-from Kibble.Logging.EventSchema import device_types
+from Kibble.Logging.EventSchema import device_types, EVENT_SCHEMA_VERSION
 
 EVENTS_COLLECTION = "timeseries_events"
 DEVICES_COLLECTION = "devices"
@@ -23,6 +22,7 @@ class MongoLogger(Logger):
     Class for logging events/data to the MongoDB.
     Events go to a time series collection; devices use a normal collection.
     """
+    #TODO: Use retryWrite in MongoClient options in case initial connection fails.
     def __init__(self, db_name: str, host: str='database.internal', port: int=27017, user: str='root', passwd: str='password'):
         self.client = MongoClient(f"mongodb://{user}:{passwd}@{host}:{port}")
         self.client.admin.command('ping')  # can raise ConnectionFailure
@@ -31,7 +31,7 @@ class MongoLogger(Logger):
         # Time series collection
         time_series_options = {
             "timeField": "timestamp",
-            "metaField": "endpoint",
+            "metaField": "device_id",
             "granularity": "seconds",
         }
         if EVENTS_COLLECTION not in self.db.list_collection_names():
@@ -64,12 +64,17 @@ class MongoLogger(Logger):
         # Time series collection requires a BSON UTC datetime in "timestamp"
         if "timestamp" not in data:
             data = {"timestamp": datetime.datetime.now(datetime.timezone.utc), **data}
+        if "schema_version" not in data:
+            data = {"schema_version": EVENT_SCHEMA_VERSION, **data}
         ret = self.events_collection.insert_one(data)
         return ret.inserted_id is not None
 
     def log_many(self, data: list[dict], levels: list[LogLevel]=[]) -> bool:
         assert len(data) == len(levels), "Data length and levels length are not the same"
-        # Event docs already have "severity" (string) from the schema; do not add numeric "level"
+        # Ensure every event has schema_version for evolution
+        for doc in data:
+            if "schema_version" not in doc:
+                doc["schema_version"] = EVENT_SCHEMA_VERSION
         ret = self.events_collection.insert_many(data)
         return bool(ret.inserted_ids)
     

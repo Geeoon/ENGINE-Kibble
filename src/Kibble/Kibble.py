@@ -4,6 +4,9 @@ Overall system implementation
 
 import time
 import asyncio
+from typing import Optional
+
+from bson import ObjectId  
 
 from Kibble.Logging import Logger, LogLevel, ICMP
 from Kibble.Logging.EventSchema import device_info
@@ -15,7 +18,7 @@ class Kibble:
     """
     Monitors a series of endpoints and logs their status
     """
-    def __init__(self, monitors: list[StatusMonitor]=[], loggers: list[Logger]=[], alerters: list[Alert]=[], detector: Detector=LatencyDetector(), interval: int=10, device_log_interval: int=600):
+    def __init__(self, monitors: list[StatusMonitor]=[], loggers: list[Logger]=[], alerters: list[Alert]=[], detector: Detector=LatencyDetector(), interval: int=10, device_log_interval: int=600, device_type_id: Optional[ObjectId]=None):
         """
         Initializes the Kibble system
 
@@ -31,6 +34,8 @@ class Kibble:
         :type interval: int
         :param device_log_interval: how often to log device snapshot in seconds (e.g. 600 = 10 min)
         :type device_log_interval: int
+        :param device_type_id: MongoDB ObjectId of the device type (from device_types collection) for normalized device logging
+        :type device_type_id: Optional[ObjectId]
         """
         assert len(monitors) > 0, "You must have at least 1 monitor"
         assert len(loggers) > 0, "You must have at least 1 logger"
@@ -42,13 +47,21 @@ class Kibble:
         self.detector = detector
         self.interval = interval
         self.device_log_interval = device_log_interval
+        self.device_type_id = device_type_id
         self._last_device_log_time: float = 0.0
 
+    #TODO: Add correlation_id to the events so that we can tie all events from one "run" or one alert cycle together and see in db 
     def run(self):
         """
         Starts the Kibble system
         """
         try:
+            # Ensure devices exist before first event batch so device_id is always set (time series metaField).
+            asyncio.run(self._rescan())
+            self._log_devices()
+            self._last_device_log_time = time.time()
+            #TODO: Edge case where device is added after first scan but before first event batch.
+
             while True:
                 start_time = time.time()
                 asyncio.run(self._rescan())
@@ -84,6 +97,9 @@ class Kibble:
     def _get_logs(self):
         logs: list[dict] = []
         levels: list[LogLevel] = []
+        device_id_logger = next(
+            (lg for lg in self.loggers if hasattr(lg, "get_device_id")), None
+        )
         for monitor in self.monitors:
             res = monitor.get_status()
             for key in res.keys():
@@ -92,13 +108,8 @@ class Kibble:
                     # it hasn't been scanned yet
                     continue
                 level = self.detector.get_level(key, log)
-                device_id = None
-                for logger in self.loggers:
-                    if hasattr(logger, "get_device_id"):
-                        device_id = logger.get_device_id(key)
-                        if device_id is not None:
-                            break
-                logs.append(ICMP(key, log, level, device_id=device_id))
+                device_id = device_id_logger.get_device_id(key) if device_id_logger else None
+                logs.append(ICMP(log, level, device_id=device_id))
                 levels.append(level)
         return logs, levels
 
@@ -114,7 +125,7 @@ class Kibble:
             for endpoint_ip, status_data in monitor.get_status().items():
                 if status_data is None:
                     continue
-                devices.append(device_info("device 1", endpoint_ip, status_data))
+                devices.append(device_info(self.device_type_id, endpoint_ip, status_data))
         if not devices:
             return
         for logger in self.loggers:

@@ -9,13 +9,13 @@ from Kibble import Kibble
 screen_logger = ScreenLogger()
 mongo_logger = MongoLogger('kibble')
 
-# Adding device type for ICMP logging 
-mongo_logger.ensure_device_type("device 1", ["ICMP"])
+# Adding device type for ICMP logging (normalized: devices reference this by device_type_id)
+device_type_id = mongo_logger.ensure_device_type("device 1", ["ICMP"])
 screen_alert = ScreenAlert()
 email_alert = EmailAlert()
 
 #                                 localhost    non existant    test computers...
 monitor = ICMPMonitor(endpoints=["127.0.0.1", "192.67.67.67", "10.128.0.1", "10.128.0.2", "10.128.0.3", "10.128.0.4", "10.128.0.5"], timeout=5)
 
-kibble = Kibble(monitors=[monitor], loggers=[screen_logger, mongo_logger], alerters=[screen_alert])
+kibble = Kibble(monitors=[monitor], loggers=[screen_logger, mongo_logger], alerters=[screen_alert], device_type_id=device_type_id)
 kibble.run()
