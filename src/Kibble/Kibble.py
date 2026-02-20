@@ -22,7 +22,8 @@ class Kibble:
         detector: Detector=LatencyDetector(), 
         interval: int=10,
         devices_collection = None,
-        protocol_events_collection = None
+        protocol_events_collection = None,
+        device_types_collection = None
         ):
         """
         Initializes the Kibble system
@@ -47,12 +48,12 @@ class Kibble:
         self.alerters = alerters
         self.detector = detector
         self.interval = interval
+
         self.devices_collection = devices_collection
         self.protocol_events_collection = protocol_events_collection
+        self.device_types_collection = device_types_collection
 
-        self.device_index = {}  
-        self.device_id_index = {}
-        self.protocol_cache = {}
+        self.device_unique_ids = {"index": {}, "id_index": {}, "protocol_cache": {}}
         self._get_devices()
 
     def run(self):
@@ -117,37 +118,71 @@ class Kibble:
             logger.close()
 
     def _get_devices(self):
+        """
+        Pull devices info docs and build quick lookup indexes:
+        - hostname/ip -> metadata (device_id, device_type_id)
+        - device_id   -> metadata        
+        """
+        if self.devices_collection is None:
+            raise ValueError("devices_collection must be provided")
+        if self.protocol_events_collection is None:
+            raise ValueError("protocol_events_collection must be provided")
+        if self.device_types_collection is None:
+            raise ValueError("device_types_collection must be provided")
+
         cursor = self.devices_collection.find({}, {
-            "_id" : 1, "hostname" : 1, "ip_address" : 1, "device_type" : 1})
-        device_index = {}
-        device_id_index = {}
+            "_id" : 1, "device_ip" : 1, "hostname" : 1, "device_type_id" : 1})
+        index = {}
+        id_index = {}
 
         for device in cursor:
             hostname = (device.get("hostname") or "").strip()
-            ip = (device.get("ip_address") or "").strip()
+            ip = (device.get("device_ip") or "").strip()
 
             if not hostname and not ip: continue
 
             data = {
                 "device_id": device["_id"],
-                "device_type": device.get("device_type"),
+                "device_type_id": device.get("device_type_id"),
                 "hostname": hostname or None,
-                "ip_address": ip or None,
+                "device_ip": ip or None,
             }
             
 
-            if hostname: device_index[hostname] = data
-            if ip: device_index[ip] = data
+            if hostname: index[hostname] = data
+            if ip: index[ip] = data
 
-            device_id_index[device["_id"]] = data
+            id_index[device["_id"]] = data
 
-        self.device_index = device_index
-        self.device_id_index = device_id_index
+        self.device_unique_ids["index"] = index
+        self.device_unique_ids["id_index"] = id_index
 
     def _get_protocols(self):
-        for device_id, data in self.device_id_index.items():
-            device = self.devices_collection.find_one({"_id": device_id}, {"supported_protocols": 1})
-            protocols = (device or {}).get("supported_protocols", []) or []
+        """
+        For each device, fetch supported protocols and collect event types per protocol
+        Stores results in self.device_unique_ids["protocol_cache"]
+        """
+        if self.devices_collection is None:
+            raise ValueError("devices_collection must be provided")
+        if self.protocol_events_collection is None:
+            raise ValueError("protocol_events_collection must be provided")
+        if self.device_types_collection is None:
+            raise ValueError("device_types_collection must be provided")
+
+        protocol_cache = {}
+
+        for device_id, data in self.device_unique_ids["id_index"].items():
+            device_type_id = data.get("device_type_id")
+
+            if not device_type_id:
+                protocol_cache[device_id] = {"protocols": [], "event_types_by_protocol":{}}
+                continue
+
+            dtype = self.device_types_collection.find_one(
+                {"_id": device_type_id},
+                {"protocols_supported": 1, "name": 1})
+
+            protocols = (dtype or {}).get("protocols_supported", []) or []
             event_types_by_protocol: dict[str, set] = {}
 
             if protocols: 
@@ -159,11 +194,14 @@ class Kibble:
                 for event in cursor:
                     p = event.get("protocol")
                     e_type = event.get("event_type")
+
                     if not p or not e_type:
                         continue
                     event_types_by_protocol.setdefault(p, set()).add(e_type)        
 
-            self.protocol_cache[device_id] = {
+            protocol_cache[device_id] = {
                 "protocols": protocols,
                 "event_types_by_protocol": {p: sorted(list(s)) for p, s in event_types_by_protocol.items()}
             }
+            
+            self.device_unique_ids["protocol_cache"] = protocol_cache
