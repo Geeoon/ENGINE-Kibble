@@ -9,9 +9,9 @@ from datetime import datetime
 
 class LogLevel(Enum):
     DEBUG=('debug', logging.DEBUG)
-    INFO=('info', logging.INFO)
-    WARNING=('warning', logging.WARNING)
-    ERROR=('error', logging.ERROR)
+    LOW=('low', logging.INFO)
+    MEDIUM=('medium', logging.WARNING)
+    HIGH=('high', logging.ERROR)
     CRITICAL=('critical', logging.CRITICAL)
 
     def __str__(self):

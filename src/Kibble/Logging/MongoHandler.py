@@ -44,11 +44,6 @@ class MongoHandler(logging.Handler):
             self.db.create_collection(EVENTS_COLLECTION, timeseries=time_series_options)
         self.events_collection = self.db[EVENTS_COLLECTION]
 
-        # TODO: move somewhere else
-        # if DEVICES_COLLECTION not in self.db.list_collection_names():
-        #     self.db.create_collection(DEVICES_COLLECTION)
-        # self.devices_collection = self.db[DEVICES_COLLECTION]
-
         # instead of logging individually, log in batches
         self._batch: list[tuple[dict, int]] = []
         self._batch_lock = threading.Lock()
@@ -89,17 +84,3 @@ class MongoHandler(logging.Handler):
             # send any remaining records to the database
             self._send_batch()
         self.client.close()
-
-    # TODO, put somewhere else
-    # def _log_device(self, data: dict) -> bool:
-    #     ret = self.devices_collection.insert_one(data)
-    #     return True if ret.inserted_id else False
-
-    # def _log_device_many(self, data: list[dict]) -> bool:
-    #     # clear old data and insert the new snapshot each interval.
-    #     self.devices_collection.delete_many({})
-    #     if not data:
-    #         return True
-    #     ret = self.devices_collection.insert_many(data)
-    #     return True if ret.inserted_ids else False
-
