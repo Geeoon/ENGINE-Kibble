@@ -103,10 +103,6 @@ class Kibble:
             self.maintainance_logger.debug("Sending logs")
             self.logger.log(int(level), log, extra={ "status": log })
 
-        # TODO: make maintainance logger
-        # if behind:
-        #     logger.log({"msg": "Kibble did not meet the status interval requirement!"}, LogLevel.DEBUG)
-                        
     def _end(self, msg: str=""):
         # TODO: make maintainance logger
         # self.logger.log({"msg": f"Kibble shutting down: {msg}"})
