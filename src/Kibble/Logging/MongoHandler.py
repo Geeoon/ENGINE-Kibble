@@ -6,7 +6,6 @@ from pymongo import MongoClient
 import threading
 
 EVENTS_COLLECTION = "timeseries_events"
-DEVICES_COLLECTION = "devices"
 
 class MongoHandler(logging.Handler):
     """
@@ -48,7 +47,7 @@ class MongoHandler(logging.Handler):
         self._batch: list[tuple[dict, int]] = []
         self._batch_lock = threading.Lock()
         self.update_frequency = update_frequency
-        self._batch_thread = threading.Timer(self.update_frequency, self._send_batch)
+        self._batch_thread = threading.Timer(self.update_frequency, self._batch_worker)
         self._batch_thread.daemon = True
         self._batch_thread.start()
 
@@ -66,6 +65,12 @@ class MongoHandler(logging.Handler):
         with self._batch_lock:
             self._batch.append((data, level))
 
+    def _batch_worker(self):
+        self._send_batch()
+        self._batch_thread = threading.Timer(self.update_frequency, self._batch_worker)
+        self._batch_thread.daemon = True
+        self._batch_thread.start()
+
     def _send_batch(self):
         with self._batch_lock:
             if len(self._batch) != 0:
@@ -73,14 +78,11 @@ class MongoHandler(logging.Handler):
                 if not ret.inserted_ids:
                     raise Exception("Failed to insert into database")  # TODO: replace with better exception
                 self._batch.clear()
-        self._batch_thread = threading.Timer(self.update_frequency, self._send_batch)
-        self._batch_thread.daemon = True
-        self._batch_thread.start()
-        
+                
     def close(self):
         self.flush()
         if self._batch_thread:
             self._batch_thread.cancel()
-            # send any remaining records to the database
-            self._send_batch()
+        # send any remaining records to the database
+        self._send_batch()
         self.client.close()

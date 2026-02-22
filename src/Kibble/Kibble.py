@@ -104,6 +104,4 @@ class Kibble:
             self.logger.log(int(level), log, extra={ "status": log })
 
     def _end(self, msg: str=""):
-        # TODO: make maintainance logger
-        # self.logger.log({"msg": f"Kibble shutting down: {msg}"})
         self.maintainance_logger.debug(msg)

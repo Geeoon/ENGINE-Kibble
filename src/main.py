@@ -23,7 +23,8 @@ file_status_handler.setLevel(logging.NOTSET)
 file_status_handler.setFormatter(formatter)
 # mongodb logging
 mongo_status_handler = MongoHandler('kibble')
-mongo_status_handler.setLevel(logging.INFO)
+mongo_status_handler.setLevel(logging.NOTSET)
+
 # attach handlers
 # status_logger.addHandler(screen_status_handler)  # just for debugging
 status_logger.addHandler(file_status_handler)  # keep on disk in case the database goes down
