@@ -7,7 +7,7 @@ def ping_event(endpoint_ip: str, status_data: dict, severity: LogLevel = LogLeve
     timestamp = datetime.datetime.now(datetime.timezone.utc)
     return {
         "timestamp": timestamp,
-        "event_type": "endpoint_down",
+        "event_type": "endpoint_down",  # this is wrong
         "endpoint": {
             "ip": endpoint_ip
         },
