@@ -18,7 +18,7 @@ class Kibble:
     """
     Monitors a series of endpoints and logs their status
     """
-    def __init__(self, monitors: list[StatusMonitor]=[], loggers: list[Logger]=[], alerters: list[Alert]=[], detector: Detector=LatencyDetector(), interval: int=10, device_log_interval: int=600, device_type_id: Optional[ObjectId]=None):
+    def __init__(self, monitors: list[StatusMonitor]=[], loggers: list[Logger]=[], alerters: list[Alert]=[], detector: Detector=LatencyDetector(), interval: int=10, device_log_interval: int=600, default_device_type_id: Optional[ObjectId]=None):
         """
         Initializes the Kibble system
 
@@ -34,8 +34,8 @@ class Kibble:
         :type interval: int
         :param device_log_interval: how often to log device snapshot in seconds (e.g. 600 = 10 min)
         :type device_log_interval: int
-        :param device_type_id: MongoDB ObjectId of the device type (from device_types collection) for normalized device logging
-        :type device_type_id: Optional[ObjectId]
+        :param default_device_type_id: MongoDB ObjectId of the device type (from device_types collection); used when a device is not yet in the DB or has no device_type_id
+        :type default_device_type_id: Optional[ObjectId]
         """
         assert len(monitors) > 0, "You must have at least 1 monitor"
         assert len(loggers) > 0, "You must have at least 1 logger"
@@ -47,7 +47,7 @@ class Kibble:
         self.detector = detector
         self.interval = interval
         self.device_log_interval = device_log_interval
-        self.device_type_id = device_type_id
+        self.default_device_type_id = default_device_type_id
         self._last_device_log_time: float = 0.0
 
     #TODO: Add correlation_id to the events so that we can tie all events from one "run" or one alert cycle together and see in db 
@@ -98,26 +98,37 @@ class Kibble:
         logs: list[dict] = []
         levels: list[LogLevel] = []
         device_id_logger = next(
-            (lg for lg in self.loggers if hasattr(lg, "get_device_id")), None
+            (lg for lg in self.loggers if hasattr(lg, "_get_device_ids")), None
         )
+        # Collect (endpoint_ip, status_data) for all endpoints that have been scanned
+        entries: list[tuple[str, dict]] = []
         for monitor in self.monitors:
             res = monitor.get_status()
-            for key in res.keys():
-                log = res[key]
+            for key, log in res.items():
                 if not log:
-                    # it hasn't been scanned yet
                     continue
-                level = self.detector.get_level(key, log)
-                device_id = device_id_logger.get_device_id(key) if device_id_logger else None
-                logs.append(ICMP(log, level, device_id=device_id))
-                levels.append(level)
+                entries.append((key, log))
+        # One batch lookup for all device IDs (using $in) instead of per-endpoint queries
+        endpoint_ips = [key for key, _ in entries]
+        device_ids = (
+            device_id_logger._get_device_ids(endpoint_ips) if device_id_logger else {}
+        )
+        for key, log in entries:
+            level = self.detector.get_level(key, log)
+            device_id = device_ids.get(key)
+            logs.append(ICMP(log, level, device_id=device_id))
+            levels.append(level)
         return logs, levels
 
     def _send_to_loggers(self, logs: list[dict], levels: list[LogLevel], behind: bool):
         for logger in self.loggers:
-            logger.log_many(logs, levels)
-            if behind:
-                logger.log({"msg": "Kibble did not meet the status interval requirement!"}, LogLevel.DEBUG)
+            try:
+                logger.log_many(logs, levels)
+                if behind:
+                    logger.log({"msg": "Kibble did not meet the status interval requirement!"}, LogLevel.DEBUG)
+            except ValueError:
+                # e.g. data/levels length mismatch; skip this logger and continue
+                pass
 
     def _log_devices(self):
         devices: list[dict] = []
@@ -125,7 +136,7 @@ class Kibble:
             for endpoint_ip, status_data in monitor.get_status().items():
                 if status_data is None:
                     continue
-                devices.append(device_info(self.device_type_id, endpoint_ip, status_data))
+                devices.append(device_info(self.default_device_type_id, endpoint_ip, status_data))
         if not devices:
             return
         for logger in self.loggers:

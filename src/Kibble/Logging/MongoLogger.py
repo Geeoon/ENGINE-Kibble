@@ -46,13 +46,21 @@ class MongoLogger(Logger):
             self.db.create_collection(DEVICE_TYPES_COLLECTION)
         self.device_types_collection = self.db[DEVICE_TYPES_COLLECTION]
 
-    # returns the unique id of the device
-    def get_device_id(self, endpoint_ip: str) -> Optional[ObjectId]:
+    def _get_device_id(self, endpoint_ip: str) -> Optional[ObjectId]:
         doc = self.devices_collection.find_one({"device_ip": endpoint_ip}, {"_id": 1})
         return doc["_id"] if doc else None
 
-    # returns the _id of the device type
-    def ensure_device_type(self, name: str, protocols_supported: list[str]) -> ObjectId:
+    def _get_device_ids(self, endpoint_ips: list[str]) -> dict[str, ObjectId]:
+        """Return mapping of device_ip -> _id for all IPs present in the devices collection (one query)."""
+        if not endpoint_ips:
+            return {}
+        cursor = self.devices_collection.find(
+            {"device_ip": {"$in": endpoint_ips}},
+            {"_id": 1, "device_ip": 1},
+        )
+        return {doc["device_ip"]: doc["_id"] for doc in cursor}
+
+    def _ensure_device_type(self, name: str, protocols_supported: list[str]) -> ObjectId:
         existing = self.device_types_collection.find_one({"name": name})
         if existing:
             return existing["_id"]
@@ -70,7 +78,8 @@ class MongoLogger(Logger):
         return ret.inserted_id is not None
 
     def log_many(self, data: list[dict], levels: list[LogLevel]=[]) -> bool:
-        assert len(data) == len(levels), "Data length and levels length are not the same"
+        if len(data) != len(levels):
+            raise ValueError("Data length and levels length are not the same")
         # Ensure every event has schema_version for evolution
         for doc in data:
             if "schema_version" not in doc:
