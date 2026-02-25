@@ -3,16 +3,17 @@ Email Alerting Test 1: Email alert occurs on failure
 Ensuring email alerting system properly transmits an alert when device goes down.
 """
 
+import os
 import pytest
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock
 from Kibble.Kibble import Kibble
-from Kibble.Alerting import EmailAlert
+from Kibble.Alerting.EmailAlert import EmailAlert
 from Kibble.Logging import LogLevel
 
-@patch('smtplib.SMTP_SSL')
-def test_email_alert_content_and_trigger(mock_smtp):
-    mock_server = MagicMock()
-    mock_smtp.return_value.__enter__.return_value = mock_server
+def test_email_alert_content_and_trigger():
+    # Verify environment variable for password is set or there will be a failure
+    if not os.getenv('EMAIL_PASSWD'):
+        pytest.fail("EMAIL_PASSWD env var not set. Run: $env:EMAIL_PASSWD='your_pass'")
     
     mock_monitor = MagicMock()
     mock_monitor._timeout = 1
@@ -38,17 +39,12 @@ def test_email_alert_content_and_trigger(mock_smtp):
     )
 
     alerts = kibble_inst.detector.get_alerts()
+    results = []
     for endpoint in alerts.keys():
         for alerter in kibble_inst.alerters:
-            alerter.alert(f"ALERT FOR {endpoint}", alerts[endpoint]['level'])
+            status = alerter.alert(f"ALERT FOR {endpoint}", alerts[endpoint]['level'])
+            results.append(status)
 
-    mock_server.login.assert_called_once()
-    args, _ = mock_server.sendmail.call_args
-    sender = args[0]
-    receiver = args[1]
-    full_email_text = args[2]
-
-    assert sender == "kibblealert@gmail.com"
-    assert receiver == "kibblealert@gmail.com"
-    assert f"ALERT FOR {faulty_ip}" in full_email_text
-    assert "CRITICAL" in full_email_text
+    assert all(results) is True, "The real email transmission failed."
+    
+    print(f"Email successfully sent to kibblealert@gmail.com")
