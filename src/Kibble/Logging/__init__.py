@@ -1,5 +1,3 @@
 from .Logger import *
-from .FileLogger import *
-from .MongoLogger import *
-from .ScreenLogger import *
+from .MongoHandler import *
 from .EventSchema import *
