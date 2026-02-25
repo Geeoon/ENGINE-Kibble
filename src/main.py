@@ -17,5 +17,13 @@ email_alert = EmailAlert()
 #                                 localhost    non existant    test computers...
 monitor = ICMPMonitor(endpoints=["127.0.0.1", "192.67.67.67", "10.128.0.1", "10.128.0.2", "10.128.0.3", "10.128.0.4", "10.128.0.5"], timeout=5)
 
-kibble = Kibble(monitors=[monitor], loggers=[screen_logger, mongo_logger], alerters=[screen_alert], default_device_type_id=device_type_id)
+kibble = Kibble(
+    monitors=[monitor],
+    loggers=[screen_logger, mongo_logger],
+    alerters=[screen_alert],
+    default_device_type_id=device_type_id,
+    devices_collection=mongo_logger.devices_collection,
+    device_types_collection=mongo_logger.device_types_collection,
+    events_collection=mongo_logger.events_collection,
+)
 kibble.run()
