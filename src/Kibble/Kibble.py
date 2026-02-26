@@ -6,7 +6,8 @@ import logging
 import time
 import asyncio
 from typing import Optional
-from bson import ObjectId  
+
+from bson import ObjectId  # type: ignore[import-untyped]
 from pymongo import MongoClient
 
 from Kibble.Logging import LogLevel, ICMP
@@ -16,15 +17,28 @@ from Kibble.Alerting import Alert
 from Kibble.Detecting import Detector, LatencyDetector
 from Kibble.Retrieval import DeviceRetriever
 
+#EVENTS_COLLECTION = "timeseries_events"
+
+
 class Kibble:
     """
     Monitors a series of endpoints and logs their status
     """
-    def __init__(self, client: MongoClient, monitors: list[StatusMonitor]=[], alerters: list[Alert]=[], detector: Detector=LatencyDetector(), interval: int=10, default_device_type: Optional[ObjectId]=None):  # , device_log_interval: int=600
-        """
-        Initializes the Kibble system
 
-        :param client: the client to use for the retrieval
+    def __init__(
+        self,
+        client: MongoClient,
+        monitors: list[StatusMonitor],
+        alerters: list[Alert] | None = None,
+        detector: Detector = LatencyDetector(),
+        interval: int = 10,
+        # device_log_interval: int = 600,
+        default_device_type: Optional[tuple[str, list[str]]] = None,
+    ):
+        """
+        Initializes the Kibble system.
+
+        :param client: MongoClient to use for retrieval
         :type client: MongoClient
         :param monitors: the monitors to use for tracking the endpoints
         :type monitors: list[StatusMonitor]
@@ -34,34 +48,52 @@ class Kibble:
         :type detector: Detector
         :param interval: how often to check the status of endpoints in seconds
         :type interval: int
-        :param default_device_type: default device type; used when a device is not yet in the DB or has no device_type_id
-        :type default_device_type: Optional[ObjectId]
-        # :param device_log_interval: how often to log device snapshot in seconds (e.g. 600 = 10 min)
+        #:param device_log_interval: how often to log device snapshot in seconds
         # :type device_log_interval: int
+        :param default_device_type: (name, [protocols]) for a default device_type row
+        :type default_device_type: Optional[tuple[str, list[str]]]
         """
+
         self.maintainance_logger = logging.getLogger("Kibble_Maintainance")
         self.logger = logging.getLogger("Kibble_Status")
 
         self.maintainance_logger.debug("Starting the Kibble service")
-        if len(monitors) < 1:
+
+        if not monitors:
             raise ValueError("You must have at least 1 monitor")
 
         for monitor in monitors:
-            if interval < monitor._timeout:
-                raise ValueError("Status interval must be greater than all monitor timeouts")
+            if interval <= monitor._timeout:
+                raise ValueError(
+                    "Status interval must be greater than all monitor timeouts"
+                )
 
         self.monitors = monitors
-        self.alerters = alerters
+        self.alerters = alerters or []
         self.detector = detector
         self.interval = interval
+       # self.device_log_interval = device_log_interval
+       # self._last_device_log_time: float = 0.0
 
-        # Adding device type for ICMP logging (normalized: devices reference this by device_type_id)
-        self.device_retriever = DeviceRetriever(db_name='kibble', client=client)
-        # self.device_log_interval = device_log_interval
-        self.default_device_type_id = self.device_retriever.ensure_device_type(default_device_type)
-        # self._last_device_log_time: float = 0.0
+        # DB access via DeviceRetriever
+        self.device_retriever = DeviceRetriever(db_name="kibble", client=client)
 
-    # TODO: Add correlation_id to the events so that we can tie all events from one "run" or one alert cycle together and see in db 
+        self.default_device_type_id = self.device_retriever.ensure_device_type(default_device_type, ['ICMP']) 
+
+
+        # Collections
+        self.devices_collection = self.device_retriever.devices_collection
+        self.device_types_collection = self.device_retriever.device_types_collection
+        self.events_collection = self.device_retriever.db["timeseries_events"] # Fix later for constistency with dataretriever 
+
+        # Caches from Giannah's branch
+        self.device_unique_ids = {"index": {}, "id_index": {}, "protocol_cache": {}}
+
+        # Pre-load device cache if DB is available
+        self._get_devices()
+
+    # TODO: Add correlation_id to events so we can tie all events from one run
+    # or alert cycle together in the DB.
     def run(self):
         """
         Starts the Kibble system
@@ -71,23 +103,27 @@ class Kibble:
             asyncio.run(self._rescan())
             self._log_devices()
             self._last_device_log_time = time.time()
-            #TODO: Edge case where device is added after first scan but before first event batch.
 
             while True:
                 start_time = time.time()
                 asyncio.run(self._rescan())
                 logs, levels = self._get_logs()
                 end_time = time.time()
-                behind = end_time - start_time > self.interval
-                
-                # log device snapshot at a less frequent interval
-                # if (end_time - self._last_device_log_time) >= self.device_log_interval:
-                #     self._log_devices()
-                #     self._last_device_log_time = end_time
+                behind = (end_time - start_time) > self.interval
+
+                self._get_protocols()  # Giannah's branch
+
                 if behind:
-                    self.maintainance_logger.warning(f"Kibble service is lagging behind scanning interval")
+                    self.maintainance_logger.warning("Kibble service is lagging behind scanning interval")
 
                 self._send_to_loggers(logs, levels)
+
+                # log device snapshot at a less frequent interval,
+                # but putting back in for now with caching from Giannah's branch
+                # if (end_time - self._last_device_log_time) >= self.device_log_interval:
+                #     self._get_devices()  # refresh cache from DB
+                #     self._log_devices()
+                #     self._last_device_log_time = end_time
 
                 # send alerts if needed
                 alerts = self.detector.get_alerts()
@@ -101,47 +137,53 @@ class Kibble:
                     sleep_time = self.interval - end_time + start_time
                     self.maintainance_logger.debug(f"Waiting {round(sleep_time, 1)} seconds until scanning again")
                     time.sleep(sleep_time)
+
         except KeyboardInterrupt:
             self._end("user ended (KeyboardInterrupt)")
         except Exception as e:
             self._end(str(e))
-            raise e
+            raise
 
     async def _rescan(self):
         self.maintainance_logger.debug("Starting a network scan")
         await asyncio.gather(*[monitor.update_status() for monitor in self.monitors])
         self.maintainance_logger.debug("Finished scanning network")
 
-    def _get_logs(self):
+    def _get_logs(self) -> tuple[list[dict], list[LogLevel]]:
+        """
+        Build ICMP event docs with batched device-id lookup from Giannah's branch.
+        """ 
         logs: list[dict] = []
         levels: list[LogLevel] = []
         # device_id_logger = next(
         #     (lg for lg in self.loggers if hasattr(lg, "_get_device_ids")), None
         # )
+
         # Collect (endpoint_ip, status_data) for all endpoints that have been scanned
         entries: list[tuple[str, dict]] = []
-        
+
         for monitor in self.monitors:
             res = monitor.get_status()
-            for key, log in res.items():
+            for key, log in res.items(): #only getting ip and status as an entry 
                 if not log:
                     continue
-                level = self.detector.get_level(key, log)
-                logs.append(ICMP(log, level, device_id=device_id))  # format log
-                levels.append(level)
+                entries.append((key, log))
+
+        # if not entries:
+        #     return logs, levels
+
+        # One batch lookup for all device IDs instead of per-endpoint queries
+        # bringing back so that we can get the device_id from the cache and retrieval works properly 
+        endpoint_ips = [key for key, _ in entries]
+        device_ids = self.device_retriever.get_device_ids(endpoint_ips) # using device_retriever 
+
+        for key, log in entries: 
+            level = self.detector.get_level(key, log)
+            device_id = device_ids.get(key)
+            logs.append(ICMP(log, level, device_id=device_id))
+            levels.append(level)
+
         return logs, levels
-                # entries.append((key, log))
-        # One batch lookup for all device IDs (using $in) instead of per-endpoint queries
-        # endpoint_ips = [key for key, _ in entries]
-        # device_ids = (
-        #     device_id_logger._get_device_ids(endpoint_ips) if device_id_logger else {}
-        # )
-        # for key, log in entries:
-        #     level = self.detector.get_level(key, log)
-        #     device_id = device_ids.get(key)
-        #     logs.append(ICMP(log, level, device_id=device_id))
-        #     levels.append(level)
-        # return logs, levels
 
     def _send_to_loggers(self, logs: list[dict], levels: list[LogLevel]):
         try:
@@ -152,6 +194,7 @@ class Kibble:
             # e.g. data/levels length mismatch; skip this logger and continue
             pass
 
+  
     # TODO: this needs reworking
     def _log_devices(self):
         devices: list[dict] = []
@@ -159,12 +202,125 @@ class Kibble:
             for endpoint_ip, status_data in monitor.get_status().items():
                 if status_data is None:
                     continue
-                devices.append(device_info(self.default_device_type_id, endpoint_ip, status_data))
+                
+                # getting the device type for each endpoint
+                meta = self.device_unique_ids["index"].get(endpoint_ip)
+                dtype_id = (
+                    meta.get("device_type_id") if meta and meta.get("device_type_id") else self.default_device_type_id
+                )
+
+                devices.append(device_info(dtype_id, endpoint_ip, status_data))
+
         if not devices:
             return
-        for logger in self.loggers:
-            if hasattr(logger, "log_device_many"):
-                logger.log_device_many(devices)
+
+        for doc in devices:
+            device_ip = doc.get("device_ip")
+            if device_ip is None:
+                continue
+            # no longer using logger.log_device_many, using direct DB writes
+            self.devices_collection.update_one(
+                {"device_ip": device_ip},
+                {"$set": doc},
+                upsert=True,
+            )
+
+        # Refresh caches after upserting devices so the next run can use the updated device info (if any chnages0
+        self._get_devices() 
 
     def _end(self, msg: str=""):
         self.maintainance_logger.debug(msg)
+
+
+    # ---- DB retrieval and caching methods ----
+
+    # from Giannah's branch
+    def _get_devices(self):
+        """
+        Pull devices info docs and build quick lookup indexes:
+        - hostname/ip -> metadata (device_id, device_type_id)
+        - device_id   -> metadata
+        """
+        if self.devices_collection is None:
+            raise ValueError("devices_collection must be provided")
+
+        cursor = self.devices_collection.find(
+            {},
+            {"_id": 1, "device_ip": 1, "hostname": 1, "device_type_id": 1},
+        )
+        index: dict[str, dict] = {}
+        id_index: dict[ObjectId, dict] = {}
+
+        for device in cursor:
+            hostname = (device.get("hostname") or "").strip()
+            ip = (device.get("device_ip") or "").strip()
+
+            if not hostname and not ip: continue
+
+            data = {
+                "device_id": device["_id"],
+                "device_type_id": device.get("device_type_id"),
+                "hostname": hostname or None,
+                "device_ip": ip or None,
+            }
+
+            if hostname:
+                index[hostname] = data
+            if ip:
+                index[ip] = data
+
+            id_index[device["_id"]] = data
+
+        self.device_unique_ids["index"] = index
+        self.device_unique_ids["id_index"] = id_index
+
+    # from Giannah's branch
+    def _get_protocols(self):
+        """
+        For each device, fetch supported protocols and collect event types per protocol.
+        Stores results in self.device_unique_ids["protocol_cache"].
+        """
+
+        if self.devices_collection is None:
+            raise ValueError("devices_collection must be provided")
+        if self.events_collection is None:
+            raise ValueError("events_collection must be provided")
+        if self.device_types_collection is None:
+            raise ValueError("device_types_collection must be provided")
+
+        protocol_cache: dict[ObjectId, dict] ={}
+
+        for device_id, data in self.device_unique_ids["id_index"].items():
+            device_type_id = data.get("device_type_id")
+
+            if not device_type_id:
+                protocol_cache[device_id] = {"protocols": [], "event_types_by_protocol": {}}
+                continue
+
+            dtype = self.device_types_collection.find_one(
+                {"_id": device_type_id},
+                {"protocols_supported": 1, "name": 1},
+            )
+
+            protocols = (dtype or {}).get("protocols_supported", []) or []
+            event_types_by_protocol: dict[str, set[str]] = {}
+
+            if protocols:
+                cursor = self.events_collection.find(
+                    {"device_id": device_id},
+                    {"_id": 1, "event_type": 1},
+                )
+
+                for event in cursor:
+                    e_type = event.get("event_type")
+                    if not e_type:
+                        continue
+                    for p in protocols:
+                        event_types_by_protocol.setdefault(p, set()).add(e_type)
+
+            protocol_cache[device_id] = {
+                "protocols": protocols,
+                "event_types_by_protocol": {p: sorted(list(s)) for p, s in event_types_by_protocol.items()},
+            }
+
+        self.device_unique_ids["protocol_cache"] = protocol_cache
