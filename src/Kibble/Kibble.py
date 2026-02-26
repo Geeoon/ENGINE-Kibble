@@ -109,11 +109,11 @@ class Kibble:
     def _get_logs(self):
         logs: list[dict] = []
         levels: list[LogLevel] = []
-        device_id_logger = next(
-            (lg for lg in self.loggers if hasattr(lg, "_get_device_ids")), None
-        )
+        # device_id_logger = next(
+        #     (lg for lg in self.loggers if hasattr(lg, "_get_device_ids")), None
+        # )
         # Collect (endpoint_ip, status_data) for all endpoints that have been scanned
-        entries: list[tuple[str, dict]] = []
+        # entries: list[tuple[str, dict]] = []
         for monitor in self.monitors:
             res = monitor.get_status()
             for key, log in res.items():
