@@ -1,6 +1,6 @@
 """
 MongoLogger derived class from Logger
-TODO: discuss to async or not
+NOTE: this has been depricated
 """
 import datetime
 from typing import Optional

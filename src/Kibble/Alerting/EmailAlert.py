@@ -34,7 +34,7 @@ class EmailAlert(Alert):
         password = os.getenv('EMAIL_PASSWD')
 
         sender_email = "kibblealert@gmail.com"
-        receiver_email = "elliotjnorman@gmail.com"
+        receiver_email = "kibblealert@gmail.com"
         
         message = MIMEMultipart("alternative")
         message["Subject"] = "Kibble Alert"
