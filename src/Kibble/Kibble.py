@@ -6,23 +6,26 @@ import logging
 import time
 import asyncio
 from typing import Optional
-
 from bson import ObjectId  
+from pymongo import MongoClient
 
-from Kibble.Logging import Logger, LogLevel, ICMP
+from Kibble.Logging import LogLevel, ICMP
 from Kibble.Logging.EventSchema import device_info
 from Kibble.Monitoring import StatusMonitor
 from Kibble.Alerting import Alert
 from Kibble.Detecting import Detector, LatencyDetector
+from Kibble.Retrieval import DeviceRetriever
 
 class Kibble:
     """
     Monitors a series of endpoints and logs their status
     """
-    def __init__(self, monitors: list[StatusMonitor]=[], alerters: list[Alert]=[], detector: Detector=LatencyDetector(), interval: int=10):  # , device_log_interval: int=600, default_device_type_id: Optional[ObjectId]=None
+    def __init__(self, client: MongoClient, monitors: list[StatusMonitor]=[], alerters: list[Alert]=[], detector: Detector=LatencyDetector(), interval: int=10, default_device_type: Optional[ObjectId]=None):  # , device_log_interval: int=600
         """
         Initializes the Kibble system
 
+        :param client: the client to use for the retrieval
+        :type client: MongoClient
         :param monitors: the monitors to use for tracking the endpoints
         :type monitors: list[StatusMonitor]
         :param alerters: the alerts to use for alerting faults
@@ -31,10 +34,10 @@ class Kibble:
         :type detector: Detector
         :param interval: how often to check the status of endpoints in seconds
         :type interval: int
+        :param default_device_type: default device type; used when a device is not yet in the DB or has no device_type_id
+        :type default_device_type: Optional[ObjectId]
         # :param device_log_interval: how often to log device snapshot in seconds (e.g. 600 = 10 min)
         # :type device_log_interval: int
-        # :param default_device_type_id: MongoDB ObjectId of the device type (from device_types collection); used when a device is not yet in the DB or has no device_type_id
-        # :type default_device_type_id: Optional[ObjectId]
         """
         self.maintainance_logger = logging.getLogger("Kibble_Maintainance")
         self.logger = logging.getLogger("Kibble_Status")
@@ -51,11 +54,14 @@ class Kibble:
         self.alerters = alerters
         self.detector = detector
         self.interval = interval
+
+        # Adding device type for ICMP logging (normalized: devices reference this by device_type_id)
+        self.device_retriever = DeviceRetriever(db_name='kibble', client=client)
         # self.device_log_interval = device_log_interval
-        # self.default_device_type_id = default_device_type_id
+        self.default_device_type_id = self.device_retriever.ensure_device_type(default_device_type)
         # self._last_device_log_time: float = 0.0
 
-    #TODO: Add correlation_id to the events so that we can tie all events from one "run" or one alert cycle together and see in db 
+    # TODO: Add correlation_id to the events so that we can tie all events from one "run" or one alert cycle together and see in db 
     def run(self):
         """
         Starts the Kibble system
@@ -113,7 +119,8 @@ class Kibble:
         #     (lg for lg in self.loggers if hasattr(lg, "_get_device_ids")), None
         # )
         # Collect (endpoint_ip, status_data) for all endpoints that have been scanned
-        # entries: list[tuple[str, dict]] = []
+        entries: list[tuple[str, dict]] = []
+        
         for monitor in self.monitors:
             res = monitor.get_status()
             for key, log in res.items():

@@ -6,8 +6,6 @@ from Kibble.Alerting import EmailAlert, ScreenAlert
 from Kibble.Logging import MongoHandler
 import logging
 
-# Adding device type for ICMP logging (normalized: devices reference this by device_type_id)
-# device_type_id = mongo_logger._ensure_device_type("device 1", ["ICMP"])  # TODO: integrate later
 screen_alert = ScreenAlert()
 # set up loggers
 formatter = logging.Formatter('%(asctime)s %(levelname)s %(message)s')
@@ -55,5 +53,5 @@ email_alert = EmailAlert()
 #                                 localhost    non existant    test computers...
 monitor = ICMPMonitor(endpoints=["127.0.0.1", "192.67.67.67", "10.128.0.1", "10.128.0.2", "10.128.0.3", "10.128.0.4", "10.128.0.5"], timeout=5)
 
-kibble = Kibble(monitors=[monitor], alerters=[screen_alert])  # default_device_type_id=device_type_id
+kibble = Kibble(client=mongo_status_handler.client, monitors=[monitor], alerters=[screen_alert], default_device_type=("device 1", ["ICMP"]))
 kibble.run()
