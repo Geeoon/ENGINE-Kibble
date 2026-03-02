@@ -191,30 +191,11 @@ class Kibble:
         - hostname/ip -> metadata (device_id, device_type_id)
         - device_id   -> metadata
         """
+        self.maintainance_logger.debug("Getting devices from database")
+
         if self.devices_collection is None:
             raise ValueError("devices_collection must be provided")
 
-        """
-        kibble> db['device_types'].find({})
-        [
-        {
-            _id: ObjectId('69a5ebf4f81df31f01413cee'),
-            name: [ 'device 1', [ 'ICMP' ] ],
-            protocols_supported: [ 'ICMP' ]
-        }
-        ]
-
-        kibble> db['devices'].find({})
-        {
-            _id: ObjectId('69a5ebf953f4206bd457e7da'),
-            device_ip: '127.0.0.1',
-            device_type_id: ObjectId('69a5ebf4f81df31f01413cee'),
-            hostname: '',
-            mac_address: ''
-        }
-
-
-        """
         results = self.devices_collection.aggregate([
             # join devices and device type over _id
             {
@@ -238,14 +219,25 @@ class Kibble:
         ])
 
         # convert results to the dictionary
-        self.devices.clear()
         for device in results:
-            self.devices[str(device['_id'])] = {
+            id = str(device['_id'])
+            if id not in self.devices.keys():
+                self.maintainance_logger.info(f"Found new device: {id}")
+                self.devices[id] = {}
+            if not device['device_type']:
+                self.maintainance_logger(f"No corresponding device type found for {id}")
+                continue
+
+            new_device = {
                 'ip': device['device_ip'],
                 'hostname': device['hostname'],
                 'mac': device['mac_address'],
                 'protocols': [protocol['protocols_supported'] for protocol in device['device_type']],
             }
+
+            if self.devices[id] != new_device:
+                self.maintainance_logger.info(f"Updating device information for {id}")
+                self.devices[id] = new_device
 
     # TODO: this needs reworking
     def _log_devices(self):
