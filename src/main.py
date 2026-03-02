@@ -1,7 +1,6 @@
 # Main python script
 
 from Kibble import Kibble
-from Kibble.Monitoring.Active import ICMPMonitor
 from Kibble.Alerting import EmailAlert, ScreenAlert
 from Kibble.Logging import MongoHandler
 import logging

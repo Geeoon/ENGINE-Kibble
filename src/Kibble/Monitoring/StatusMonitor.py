@@ -10,36 +10,43 @@ class StatusMonitor(ABC):
     """
     Base class that monitors that status of a computer
     """
-    def __init__(self, endpoints: list[str], timeout: int=10):
+    def __init__(self, endpoints: list[dict], timeout: int=10):
         """
         Initializes the status monitor
         
-        :param endpoints: a list of IP addresses to monitor
-        :type endpoints: list[str]
+        :param endpoints: a list of dicts representing devices to be monitored,
+                should contain 'id', 'hostname' or 'ip'
         :param timeout: the amount of time for a response before an endpoint is
                 considered dead
-        :type timeout: int
+
         """
-        # checks if all are valid IP addresses
-        # raises ValueError if an IP address is not correct
-        [ipaddress.ip_address(ip) for ip in endpoints]
         self._timeout = timeout
         self._status_lock = threading.Lock()
-        self._status = dict.fromkeys(endpoints)
+        for endpoint in endpoints:
+            if not endpoint['ip'] and not endpoint['hostname']:
+                raise ValueError(f"Endpoint {endpoint[id]} does not have an IP or hostname")
+            if endpoint['ip']:
+                # checks if all are valid IP addresses
+                # raises ValueError if an IP address is not correct
+                ipaddress.ip_address(endpoint['ip'])
+            self._status[endpoint['id']] = {
+                "details": {
+                    
+                }
+            }
 
-    def add_endpoint(self, additional: list[str]=[]) -> list[str]:
+    def add_endpoint(self, additional: list[dict]=[]) -> list[str]:
         """
         Adds additional endpoints to be monitored.  If an endpoint already
-            exists, it's previous status will be destroyed.
+            exists, it will be overwritten
         
-        :param endpoints: a list of IP addresses to monitor
-        :type endpoints: list[str]
+        :param endpoints: a list of IP addresses to monitor.  Should follow same rules as __init__
 
-        :return: the updated list of endpoints
-        :rtype: list[str]
+        :return: the updated list of endpoint IDs
         """
         with self._status_lock:
-            self._status |= dict.fromkeys(additional)
+            for another in additional:
+                self._status[another['id']] = another
             return list(self._status.keys())
     
     def remove_endpoint(self, removal: list[str]) -> list[str]:
@@ -47,18 +54,15 @@ class StatusMonitor(ABC):
         Removes an endpoint from monitoring.  If an endpoint doesn't exist,
         it will be skipped.
         
-        :param self: Description
-        :param removal: Description
-        :type removal: list[str]
+        :param removal: list of ids to remove from monitoring
 
         :return: the updated list of endpoints
-        :rtype: list[str]
         """
         with self._status_lock:
-            for key in removal:
-                self._status.pop(key, None)
+            for id in removal:
+                self._status.pop(id, None)
             return list(self._status.keys())
-    
+
     def get_endpoints(self) -> list[str]:
         with self._status_lock:
             return list(self._status.keys())
@@ -70,9 +74,16 @@ class StatusMonitor(ABC):
         """
         pass
 
+    @abstractmethod
+    def __str__(self):
+        """
+        Get the string representation of the protocol used for monitoring
+        """
+        pass
+
     def get_status(self) -> dict:
         """
-        Retrieves the status of the endpoints since the last time they were checked.
+        Retrieves a copy of the status of the endpoints since the last time they were checked.
 
         :return: a dictionary with endpoints as keys.  The value should be
                 another dict with the key "alive" with True or False and the
@@ -81,7 +92,6 @@ class StatusMonitor(ABC):
                 has not been probed yet, the value of its key will be None.
                 The rest of thefields can be any additional information
                 depending on the implementation.
-        :rtype: dict
         """
         with self._status_lock:
-            return self._status
+            return self._status.copy()

@@ -38,17 +38,11 @@ class Kibble:
         Initializes the Kibble system.
 
         :param client: MongoClient to use for retrieval
-        :type client: MongoClient
-        :param monitors: the monitors to use for tracking the endpoints
-        :type monitors: list[StatusMonitor]
+        :param monitors: the monitors to use for detecting device status
         :param alerters: the alerts to use for alerting faults
-        :type alerters: list[Alert]
         :param detector: the detector to use for determining log levels and alerts
-        :type detector: Detector
         :param interval: how often to check the status of endpoints in seconds
-        :type interval: int
         :param default_device_type: (name, [protocols]) for a default device_type row
-        :type default_device_type: Optional[tuple[str, list[str]]]
         """
 
         self.maintainance_logger = logging.getLogger("Kibble_Maintainance")
@@ -56,15 +50,15 @@ class Kibble:
 
         self.maintainance_logger.debug("Starting the Kibble service")
 
-        if not monitors:
-            raise ValueError("You must have at least 1 monitor")
+        if not monitor:
+            raise ValueError("At least one monitor must be used")
 
         for monitor in monitors:
-            if interval <= monitor._timeout:
+            if interval <= self._timeout:
                 raise ValueError(
-                    "Status interval must be greater than all monitor timeouts"
+                    "Status interval must be greater than each monitor's timeout"
                 )
-
+            
         self.monitors = monitors
         self.alerters = alerters or []
         self.detector = detector
@@ -80,7 +74,6 @@ class Kibble:
 
         # devices from the database
         self.devices = {}
-
         self._get_devices()
 
     # TODO: Add correlation_id to events so we can tie all events from one run
@@ -92,7 +85,6 @@ class Kibble:
         try:
             # Ensure devices exist before first event batch so device_id is always set (time series metaField).
             asyncio.run(self._rescan())
-            self._log_devices()
             self._last_device_log_time = time.time()
 
             while True:
@@ -186,11 +178,6 @@ class Kibble:
             pass
 
     def _get_devices(self):
-        """
-        Pull devices info docs and build quick lookup indexes:
-        - hostname/ip -> metadata (device_id, device_type_id)
-        - device_id   -> metadata
-        """
         self.maintainance_logger.debug("Getting devices from database")
 
         if self.devices_collection is None:
@@ -225,7 +212,7 @@ class Kibble:
                 self.maintainance_logger.info(f"Found new device: {id}")
                 self.devices[id] = {}
             if not device['device_type']:
-                self.maintainance_logger(f"No corresponding device type found for {id}")
+                self.maintainance_logger.error(f"No corresponding device type found for {id}")
                 continue
 
             new_device = {
@@ -238,8 +225,18 @@ class Kibble:
             if self.devices[id] != new_device:
                 self.maintainance_logger.info(f"Updating device information for {id}")
                 self.devices[id] = new_device
+        
+        for id, device in self.devices.items():
+            for protocol in device['protocols']:
+                found = False
+                for monitor in self.monitors:
+                    if protocol == str(monitor):
+                        monitor.add_endpoint(id=id, endpoint=device)
+                        found = True
+                if not found:  # no monitor found for this protocol
+                    self.maintainance_logger.error(f"{id} attempting to use unsupported protocol {protocol}")
 
-    # TODO: this needs reworking
+    # deprecated
     def _log_devices(self):
         devices: list[dict] = []
         for monitor in self.monitors:
@@ -271,57 +268,6 @@ class Kibble:
 
         # Refresh caches after upserting devices so the next run can use the updated device info (if any chnages0
         self._get_devices() 
-
-    # from Giannah's branch
-    def _get_protocols(self):
-        """
-        For each device, fetch supported protocols and collect event types per protocol.
-        Stores results in self.device_unique_ids["protocol_cache"].
-        """
-
-        if self.devices_collection is None:
-            raise ValueError("devices_collection must be provided")
-        if self.events_collection is None:
-            raise ValueError("events_collection must be provided")
-        if self.device_types_collection is None:
-            raise ValueError("device_types_collection must be provided")
-
-        protocol_cache: dict[ObjectId, dict] ={}
-
-        for device_id, data in self.device_unique_ids["id_index"].items():
-            device_type_id = data.get("device_type_id")
-
-            if not device_type_id:
-                protocol_cache[device_id] = {"protocols": [], "event_types_by_protocol": {}}
-                continue
-
-            dtype = self.device_types_collection.find_one(
-                {"_id": device_type_id},
-                {"protocols_supported": 1, "name": 1},
-            )
-
-            protocols = (dtype or {}).get("protocols_supported", []) or []
-            event_types_by_protocol: dict[str, set[str]] = {}
-
-            if protocols:
-                cursor = self.events_collection.find(
-                    {"device_id": device_id},
-                    {"_id": 1, "event_type": 1},
-                )
-
-                for event in cursor:
-                    e_type = event.get("event_type")
-                    if not e_type:
-                        continue
-                    for p in protocols:
-                        event_types_by_protocol.setdefault(p, set()).add(e_type)
-
-            protocol_cache[device_id] = {
-                "protocols": protocols,
-                "event_types_by_protocol": {p: sorted(list(s)) for p, s in event_types_by_protocol.items()},
-            }
-
-        self.device_unique_ids["protocol_cache"] = protocol_cache
 
     def _end(self, msg: str=""):
         self.maintainance_logger.debug(msg)

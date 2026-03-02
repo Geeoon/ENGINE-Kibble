@@ -28,6 +28,9 @@ class ICMPMonitor(StatusMonitor):
         """
         super().__init__(endpoints, timeout)
         self._executor = ThreadPoolExecutor(workers)
+    
+    def __str__(self):
+        return 'ICMP'
         
     async def update_status(self):
         with self._status_lock:
