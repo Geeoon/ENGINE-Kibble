@@ -32,7 +32,6 @@ class Kibble:
         alerters: list[Alert] | None = None,
         detector: Detector = LatencyDetector(),
         interval: int = 10,
-        # device_log_interval: int = 600,
         default_device_type: Optional[tuple[str, list[str]]] = None,
     ):
         """
@@ -48,8 +47,6 @@ class Kibble:
         :type detector: Detector
         :param interval: how often to check the status of endpoints in seconds
         :type interval: int
-        #:param device_log_interval: how often to log device snapshot in seconds
-        # :type device_log_interval: int
         :param default_device_type: (name, [protocols]) for a default device_type row
         :type default_device_type: Optional[tuple[str, list[str]]]
         """
@@ -72,24 +69,18 @@ class Kibble:
         self.alerters = alerters or []
         self.detector = detector
         self.interval = interval
-       # self.device_log_interval = device_log_interval
-       # self._last_device_log_time: float = 0.0
 
-        # DB access via DeviceRetriever
         self.device_retriever = DeviceRetriever(db_name="kibble", client=client)
-
         self.default_device_type_id = self.device_retriever.ensure_device_type(default_device_type, ['ICMP']) 
-
 
         # Collections
         self.devices_collection = self.device_retriever.devices_collection
         self.device_types_collection = self.device_retriever.device_types_collection
         self.events_collection = self.device_retriever.db["timeseries_events"] # Fix later for constistency with dataretriever 
 
-        # Caches from Giannah's branch
-        self.device_unique_ids = {"index": {}, "id_index": {}, "protocol_cache": {}}
+        # devices from the database
+        self.devices = {}
 
-        # Pre-load device cache if DB is available
         self._get_devices()
 
     # TODO: Add correlation_id to events so we can tie all events from one run
@@ -194,7 +185,68 @@ class Kibble:
             # e.g. data/levels length mismatch; skip this logger and continue
             pass
 
-  
+    def _get_devices(self):
+        """
+        Pull devices info docs and build quick lookup indexes:
+        - hostname/ip -> metadata (device_id, device_type_id)
+        - device_id   -> metadata
+        """
+        if self.devices_collection is None:
+            raise ValueError("devices_collection must be provided")
+
+        """
+        kibble> db['device_types'].find({})
+        [
+        {
+            _id: ObjectId('69a5ebf4f81df31f01413cee'),
+            name: [ 'device 1', [ 'ICMP' ] ],
+            protocols_supported: [ 'ICMP' ]
+        }
+        ]
+
+        kibble> db['devices'].find({})
+        {
+            _id: ObjectId('69a5ebf953f4206bd457e7da'),
+            device_ip: '127.0.0.1',
+            device_type_id: ObjectId('69a5ebf4f81df31f01413cee'),
+            hostname: '',
+            mac_address: ''
+        }
+
+
+        """
+        results = self.devices_collection.aggregate([
+            # join devices and device type over _id
+            {
+                "$lookup": {
+                    "from": "device_types",
+                    "localField": "device_type_id",
+                    "foreignField": "_id",
+                    "as": "device_type"
+                }
+            },
+            {
+                "$project": {
+                    "_id": 1,
+                    "device_ip": 1,
+                    "hostname": 1,
+                    "mac_address": 1,
+                    # "device_type.name": 1,  # is this useful to us?
+                    "device_type.protocols_supported": 1
+                }
+            }
+        ])
+
+        # convert results to the dictionary
+        self.devices.clear()
+        for device in results:
+            self.devices[str(device['_id'])] = {
+                'ip': device['device_ip'],
+                'hostname': device['hostname'],
+                'mac': device['mac_address'],
+                'protocols': [protocol['protocols_supported'] for protocol in device['device_type']],
+            }
+
     # TODO: this needs reworking
     def _log_devices(self):
         devices: list[dict] = []
@@ -227,52 +279,6 @@ class Kibble:
 
         # Refresh caches after upserting devices so the next run can use the updated device info (if any chnages0
         self._get_devices() 
-
-    def _end(self, msg: str=""):
-        self.maintainance_logger.debug(msg)
-
-
-    # ---- DB retrieval and caching methods ----
-
-    # from Giannah's branch
-    def _get_devices(self):
-        """
-        Pull devices info docs and build quick lookup indexes:
-        - hostname/ip -> metadata (device_id, device_type_id)
-        - device_id   -> metadata
-        """
-        if self.devices_collection is None:
-            raise ValueError("devices_collection must be provided")
-
-        cursor = self.devices_collection.find(
-            {},
-            {"_id": 1, "device_ip": 1, "hostname": 1, "device_type_id": 1},
-        )
-        index: dict[str, dict] = {}
-        id_index: dict[ObjectId, dict] = {}
-
-        for device in cursor:
-            hostname = (device.get("hostname") or "").strip()
-            ip = (device.get("device_ip") or "").strip()
-
-            if not hostname and not ip: continue
-
-            data = {
-                "device_id": device["_id"],
-                "device_type_id": device.get("device_type_id"),
-                "hostname": hostname or None,
-                "device_ip": ip or None,
-            }
-
-            if hostname:
-                index[hostname] = data
-            if ip:
-                index[ip] = data
-
-            id_index[device["_id"]] = data
-
-        self.device_unique_ids["index"] = index
-        self.device_unique_ids["id_index"] = id_index
 
     # from Giannah's branch
     def _get_protocols(self):
@@ -324,3 +330,6 @@ class Kibble:
             }
 
         self.device_unique_ids["protocol_cache"] = protocol_cache
+
+    def _end(self, msg: str=""):
+        self.maintainance_logger.debug(msg)
