@@ -132,27 +132,16 @@ class Kibble:
     def _get_logs(self) -> tuple[list[dict], list[LogLevel]]:
         logs: list[dict] = []
         levels: list[LogLevel] = []
-        # device_id_logger = next(
-        #     (lg for lg in self.loggers if hasattr(lg, "_get_device_ids")), None
-        # )
 
-        # Collect (endpoint_ip, status_data) for all endpoints that have been scanned
         entries: list[tuple[str, dict]] = []
 
         for monitor in self.monitors:
             res = monitor.get_status()
-            for key, log in res.items(): #only getting ip and status as an entry 
+            for key, log in res.items():
                 if not log:
                     continue
                 entries.append((key, log))
 
-        # if not entries:
-        #     return logs, levels
-
-        # One batch lookup for all device IDs instead of per-endpoint queries
-        # bringing back so that we can get the device_id from the cache and retrieval works properly 
-        endpoint_ips = [key for key, _ in entries]
-        device_ids = self.device_retriever.get_device_ids(endpoint_ips) # using device_retriever 
 
         for key, log in entries: 
             level = self.detector.get_level(key, log)

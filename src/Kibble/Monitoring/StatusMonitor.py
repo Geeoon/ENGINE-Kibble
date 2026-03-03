@@ -31,10 +31,11 @@ class StatusMonitor(ABC):
                 # raises ValueError if an IP address is not correct
                 ipaddress.ip_address(endpoint['ip'])
             self._status[endpoint['id']] = {
-                "details": {
+                'details': {
                     'ip': endpoint['ip'],
                     'hostname': endpoint['hostname']
-                }
+                },
+                'status': {}
             }
 
     def add_endpoint(self, additional: list[dict]=[]) -> list[str]:
@@ -57,10 +58,11 @@ class StatusMonitor(ABC):
                     }
                 else:  # add new
                     self._status[another['id']] = {
-                        "details": {
+                        'details': {
                             'ip': another['ip'],
                             'hostname': another['hostname']
-                        }
+                        },
+                        'status': {}
                     }
             return list(self._status.keys())
     
