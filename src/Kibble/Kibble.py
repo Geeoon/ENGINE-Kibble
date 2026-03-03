@@ -80,7 +80,6 @@ class Kibble:
         Starts the Kibble system
         """
         try:
-            # Ensure devices exist before first event batch so device_id is always set (time series metaField).
             asyncio.run(self._rescan())
             self._last_device_log_time = time.time()
 
@@ -95,13 +94,6 @@ class Kibble:
                     self.maintainance_logger.warning("Kibble service is lagging behind scanning interval")
 
                 self._send_to_loggers(logs, levels)
-
-                # log device snapshot at a less frequent interval,
-                # but putting back in for now with caching from Giannah's branch
-                # if (end_time - self._last_device_log_time) >= self.device_log_interval:
-                #     self._get_devices()  # refresh cache from DB
-                #     self._log_devices()
-                #     self._last_device_log_time = end_time
 
                 # send alerts if needed
                 alerts = self.detector.get_alerts()
@@ -133,21 +125,15 @@ class Kibble:
         logs: list[dict] = []
         levels: list[LogLevel] = []
 
-        entries: list[tuple[str, dict]] = []
-
         for monitor in self.monitors:
             res = monitor.get_status()
             for key, log in res.items():
-                if not log:
+                this_status = log['status']
+                if not this_status:
                     continue
-                entries.append((key, log))
-
-
-        for key, log in entries: 
-            level = self.detector.get_level(key, log)
-            device_id = device_ids.get(key)
-            logs.append(ICMP(log, level, device_id=device_id))
-            levels.append(level)
+                level = self.detector.get_level(key, this_status)
+                logs.append(ICMP(this_status, level, device_id=key))
+                levels.append(level)
 
         return logs, levels
 

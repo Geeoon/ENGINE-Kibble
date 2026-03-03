@@ -47,7 +47,7 @@ class ICMPMonitor(StatusMonitor):
             results = await asyncio.gather(*coroutines)
 
             for target, result in zip(targets, results):
-                self._status[target[0]] = {
+                self._status[target[0]]['status'] = {
                     "alive": result[0],
                     "latency": result[1],
                     "last_updated": result[2]

@@ -59,12 +59,15 @@ mongo_status_handler.db['devices'].update_one({"ip": "127.0.0.1"}, { "$setOnInse
     "device_type_id": kibble.default_device_type_id
     } }, upsert=True)
 mongo_status_handler.db['devices'].update_one({"hostname": "doesnotexist.internal"}, { "$setOnInsert": {
-    "device_ip": "192.67.67.67",
     "hostname": "doesnotexist.internal",
     "device_type_id": kibble.default_device_type_id
     } }, upsert=True)
+mongo_status_handler.db['devices'].update_one({"ip": "192.67.67.67"}, { "$setOnInsert": {
+    "device_ip": "192.67.67.67",
+    "device_type_id": kibble.default_device_type_id
+    } }, upsert=True)
 for id in range(1, 6):
-    mongo_status_handler.db['devices'].update_one({"hostname": f"kibble-secondary-{id}"}, { "$setOnInsert": {
+    mongo_status_handler.db['devices'].update_one({"hostname": f"simulator-secondary-{id}"}, { "$setOnInsert": {
         "hostname": f"simulator-secondary-{id}",
         "device_type_id": kibble.default_device_type_id
         } }, upsert=True)
