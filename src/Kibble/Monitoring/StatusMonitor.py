@@ -22,6 +22,7 @@ class StatusMonitor(ABC):
         """
         self._timeout = timeout
         self._status_lock = threading.Lock()
+        self._status = {}
         for endpoint in endpoints:
             if not endpoint['ip'] and not endpoint['hostname']:
                 raise ValueError(f"Endpoint {endpoint[id]} does not have an IP or hostname")
@@ -31,7 +32,8 @@ class StatusMonitor(ABC):
                 ipaddress.ip_address(endpoint['ip'])
             self._status[endpoint['id']] = {
                 "details": {
-                    
+                    'ip': endpoint['ip'],
+                    'hostname': endpoint['hostname']
                 }
             }
 
@@ -46,7 +48,20 @@ class StatusMonitor(ABC):
         """
         with self._status_lock:
             for another in additional:
-                self._status[another['id']] = another
+                if not another['ip'] and not another['hostname']:
+                    raise ValueError(f"Endpoint {another['id']} does not have an IP or hostname")
+                if another['id'] in self._status.keys():
+                    self._status[another['id']]['details'] = {
+                        'ip': another['ip'],
+                        'hostname': another['hostname']
+                    }
+                else:  # add new
+                    self._status[another['id']] = {
+                        "details": {
+                            'ip': another['ip'],
+                            'hostname': another['hostname']
+                        }
+                    }
             return list(self._status.keys())
     
     def remove_endpoint(self, removal: list[str]) -> list[str]:

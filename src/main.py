@@ -3,6 +3,7 @@
 from Kibble import Kibble
 from Kibble.Alerting import EmailAlert, ScreenAlert
 from Kibble.Logging import MongoHandler
+from Kibble.Monitoring.Active import ICMPMonitor
 import logging
 
 screen_alert = ScreenAlert()
@@ -49,8 +50,23 @@ maintainance_logger.addHandler(file_maintainance_handler)  # keep a log of the p
 screen_alert = ScreenAlert()  # TODO: replace with logger possibly
 email_alert = EmailAlert()
 
-#                                 localhost    non existant    test computers...
-monitor = ICMPMonitor(endpoints=["127.0.0.1", "192.67.67.67", "10.128.0.1", "10.128.0.2", "10.128.0.3", "10.128.0.4", "10.128.0.5"], timeout=5)
-
+monitor = ICMPMonitor(endpoints=[], timeout=5)
 kibble = Kibble(client=mongo_status_handler.client, monitors=[monitor], alerters=[screen_alert], default_device_type=("device 1", ["ICMP"]))
+
+# testing only: add devices to db, if they don't exist, for testing.
+mongo_status_handler.db['devices'].update_one({"ip": "127.0.0.1"}, { "$setOnInsert": {
+    "device_ip": "127.0.0.1",
+    "device_type_id": kibble.default_device_type_id
+    } }, upsert=True)
+mongo_status_handler.db['devices'].update_one({"hostname": "doesnotexist.internal"}, { "$setOnInsert": {
+    "device_ip": "192.67.67.67",
+    "hostname": "doesnotexist.internal",
+    "device_type_id": kibble.default_device_type_id
+    } }, upsert=True)
+for id in range(1, 6):
+    mongo_status_handler.db['devices'].update_one({"hostname": f"kibble-secondary-{id}"}, { "$setOnInsert": {
+        "hostname": f"simulator-secondary-{id}",
+        "device_type_id": kibble.default_device_type_id
+        } }, upsert=True)
+
 kibble.run()

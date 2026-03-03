@@ -7,7 +7,6 @@ import time
 import asyncio
 from typing import Optional
 
-from bson import ObjectId  # type: ignore[import-untyped]
 from pymongo import MongoClient
 
 from Kibble.Logging import LogLevel, ICMP
@@ -16,8 +15,6 @@ from Kibble.Monitoring import StatusMonitor
 from Kibble.Alerting import Alert
 from Kibble.Detecting import Detector, LatencyDetector
 from Kibble.Retrieval import DeviceRetriever
-
-#EVENTS_COLLECTION = "timeseries_events"
 
 
 class Kibble:
@@ -50,11 +47,11 @@ class Kibble:
 
         self.maintainance_logger.debug("Starting the Kibble service")
 
-        if not monitor:
+        if not monitors:
             raise ValueError("At least one monitor must be used")
 
         for monitor in monitors:
-            if interval <= self._timeout:
+            if interval <= monitor._timeout:
                 raise ValueError(
                     "Status interval must be greater than each monitor's timeout"
                 )
@@ -94,8 +91,6 @@ class Kibble:
                 end_time = time.time()
                 behind = (end_time - start_time) > self.interval
 
-                self._get_protocols()  # Giannah's branch
-
                 if behind:
                     self.maintainance_logger.warning("Kibble service is lagging behind scanning interval")
 
@@ -115,6 +110,8 @@ class Kibble:
                     for alerter in self.alerters:
                         alerter.alert(f"ALERT FOR {endpoint}", alerts[endpoint]['level'])
 
+                # check devices again
+                self._get_devices()
                 # wait until next interval
                 if not behind:
                     sleep_time = self.interval - end_time + start_time
@@ -133,9 +130,6 @@ class Kibble:
         self.maintainance_logger.debug("Finished scanning network")
 
     def _get_logs(self) -> tuple[list[dict], list[LogLevel]]:
-        """
-        Build ICMP event docs with batched device-id lookup from Giannah's branch.
-        """ 
         logs: list[dict] = []
         levels: list[LogLevel] = []
         # device_id_logger = next(
@@ -216,10 +210,10 @@ class Kibble:
                 continue
 
             new_device = {
-                'ip': device['device_ip'],
-                'hostname': device['hostname'],
-                'mac': device['mac_address'],
-                'protocols': [protocol['protocols_supported'] for protocol in device['device_type']],
+                'ip': device.get('device_ip', None),
+                'hostname': device.get('hostname', None),
+                'mac': device.get('mac_address', None),
+                'protocols': list({proto for protocol in device.get('device_type', []) for proto in protocol.get('protocols_supported', [])}),
             }
 
             if self.devices[id] != new_device:
@@ -231,7 +225,7 @@ class Kibble:
                 found = False
                 for monitor in self.monitors:
                     if protocol == str(monitor):
-                        monitor.add_endpoint(id=id, endpoint=device)
+                        monitor.add_endpoint(additional=[device | {'id': id}])
                         found = True
                 if not found:  # no monitor found for this protocol
                     self.maintainance_logger.error(f"{id} attempting to use unsupported protocol {protocol}")
