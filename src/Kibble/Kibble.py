@@ -26,6 +26,7 @@ class Kibble:
         self,
         client: MongoClient,
         monitors: list[StatusMonitor],
+        default_devices: dict={},
         alerters: list[Alert] | None = None,
         detector: Detector = LatencyDetector(),
         interval: int = 10,
@@ -36,6 +37,7 @@ class Kibble:
 
         :param client: MongoClient to use for retrieval
         :param monitors: the monitors to use for detecting device status
+        :param default_devices: the default devices to monitor before searching the database
         :param alerters: the alerts to use for alerting faults
         :param detector: the detector to use for determining log levels and alerts
         :param interval: how often to check the status of endpoints in seconds
@@ -61,16 +63,16 @@ class Kibble:
         self.detector = detector
         self.interval = interval
 
-        self.device_retriever = DeviceRetriever(db_name="kibble", client=client)
-        self.default_device_type_id = self.device_retriever.ensure_device_type(default_device_type, ['ICMP']) 
-
-        # Collections
-        self.devices_collection = self.device_retriever.devices_collection
-        self.device_types_collection = self.device_retriever.device_types_collection
-        self.events_collection = self.device_retriever.db["timeseries_events"] # Fix later for constistency with dataretriever 
+        if client:
+            self.device_retriever = DeviceRetriever(client=client)
+            self.default_device_type_id = self.device_retriever.ensure_device_type(default_device_type, ['ICMP']) 
+            # Collections
+            self.devices_collection = self.device_retriever.devices_collection
+            self.device_types_collection = self.device_retriever.device_types_collection
+            self.events_collection = self.device_retriever.db["timeseries_events"] # Fix later for constistency with dataretriever 
 
         # devices from the database
-        self.devices = {}
+        self.devices = default_devices
         self._get_devices()
 
     # TODO: Add correlation_id to events so we can tie all events from one run
@@ -147,54 +149,55 @@ class Kibble:
             pass
 
     def _get_devices(self):
-        self.maintainance_logger.debug("Getting devices from database")
+        if self.device_retriever:
+            self.maintainance_logger.debug("Getting devices from database")
 
-        if self.devices_collection is None:
-            raise ValueError("devices_collection must be provided")
+            if self.devices_collection is None:
+                raise ValueError("devices_collection must be provided")
 
-        results = self.devices_collection.aggregate([
-            # join devices and device type over _id
-            {
-                "$lookup": {
-                    "from": "device_types",
-                    "localField": "device_type_id",
-                    "foreignField": "_id",
-                    "as": "device_type"
+            results = self.devices_collection.aggregate([
+                # join devices and device type over _id
+                {
+                    "$lookup": {
+                        "from": "device_types",
+                        "localField": "device_type_id",
+                        "foreignField": "_id",
+                        "as": "device_type"
+                    }
+                },
+                {
+                    "$project": {
+                        "_id": 1,
+                        "device_ip": 1,
+                        "hostname": 1,
+                        "mac_address": 1,
+                        # "device_type.name": 1,  # is this useful to us?
+                        "device_type.protocols_supported": 1
+                    }
                 }
-            },
-            {
-                "$project": {
-                    "_id": 1,
-                    "device_ip": 1,
-                    "hostname": 1,
-                    "mac_address": 1,
-                    # "device_type.name": 1,  # is this useful to us?
-                    "device_type.protocols_supported": 1
+            ])
+
+            # convert results to the dictionary
+            for device in results:
+                id = str(device['_id'])
+                if id not in self.devices.keys():
+                    self.maintainance_logger.info(f"Found new device: {id}")
+                    self.devices[id] = {}
+                if not device['device_type']:
+                    self.maintainance_logger.error(f"No corresponding device type found for {id}")
+                    continue
+
+                new_device = {
+                    'ip': device.get('device_ip', None),
+                    'hostname': device.get('hostname', None),
+                    'mac': device.get('mac_address', None),
+                    'protocols': list({proto for protocol in device.get('device_type', []) for proto in protocol.get('protocols_supported', [])}),
                 }
-            }
-        ])
 
-        # convert results to the dictionary
-        for device in results:
-            id = str(device['_id'])
-            if id not in self.devices.keys():
-                self.maintainance_logger.info(f"Found new device: {id}")
-                self.devices[id] = {}
-            if not device['device_type']:
-                self.maintainance_logger.error(f"No corresponding device type found for {id}")
-                continue
-
-            new_device = {
-                'ip': device.get('device_ip', None),
-                'hostname': device.get('hostname', None),
-                'mac': device.get('mac_address', None),
-                'protocols': list({proto for protocol in device.get('device_type', []) for proto in protocol.get('protocols_supported', [])}),
-            }
-
-            if self.devices[id] != new_device:
-                self.maintainance_logger.info(f"Updating device information for {id}")
-                self.devices[id] = new_device
-        
+                if self.devices[id] != new_device:
+                    self.maintainance_logger.info(f"Updating device information for {id}")
+                    self.devices[id] = new_device
+            
         for id, device in self.devices.items():
             for protocol in device['protocols']:
                 found = False

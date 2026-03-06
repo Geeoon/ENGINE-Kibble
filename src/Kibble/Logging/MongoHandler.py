@@ -12,7 +12,7 @@ class MongoHandler(logging.Handler):
     Class for logging events/data to the MongoDB.
     Events go to a time series collection; devices use a normal collection.
     """
-    def __init__(self, db_name: str, host: str='database.internal', port: int=27017, user: str='root', passwd: str='password', client: MongoClient=None, update_frequency: float=1.0):
+    def __init__(self, db_name: str='kibble', host: str='database.internal', port: int=27017, user: str='root', passwd: str='password', client: MongoClient=None, update_frequency: float=1.0):
         """
         Initializes a handler for logging to MongoDB
         
