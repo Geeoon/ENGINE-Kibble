@@ -32,9 +32,7 @@ class LatencyDetector(Detector):
         is generated.
         
         :param log: the log to check
-        :type log: dict
         :return: the severity of the log
-        :rtype: LogLevel
         """
         level = LogLevel.DEBUG
         latency = log['latency']
@@ -68,7 +66,6 @@ class LatencyDetector(Detector):
         once after the log for each new endpoint is added.
         
         :return: a dictionary of endpoitns corresponding to new alerts
-        :rtype: dict
         """
 
         # if severity level has increased since the last one, do an alert

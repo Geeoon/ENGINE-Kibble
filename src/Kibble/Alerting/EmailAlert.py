@@ -23,11 +23,8 @@ class EmailAlert(Alert):
         Send an email alert
         
         :param data: the data to alert on
-        :type data: dict
         :param level: the log level
-        :type level: LogLevel
         :return: True on success, False on error
-        :rtype: bool
         """
         port = 465  # For SSL
         smtp_server = "smtp.gmail.com"

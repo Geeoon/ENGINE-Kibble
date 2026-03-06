@@ -21,11 +21,8 @@ class ICMPMonitor(StatusMonitor):
         Initializes the ICMPMonitor
         
         :param endpoints: see StatusMonitor.__init__
-        :type endpoints: list[str]
         :param timeout: see StatusMonitor.__init__
-        :type timeout: int
         :param workers: the max number of threads for the thread pool
-        :type workers: int
         """
         super().__init__(endpoints, timeout)
         self._executor = ThreadPoolExecutor(workers)
