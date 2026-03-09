@@ -1,0 +1,70 @@
+[nominal]
+# Normal/nominal settings
+latency_min = 0.1  # s
+latency_mean = 0.25  # s
+latency_stddev = 0.05  # s
+latency_max = 0.5  # s
+
+[degraded]
+# "degraded" settings, higher latency
+
+# Priority if multiple modes are enabled at once
+priority = 1
+
+# How often to enable this mode
+period_min = 480  # s
+period_mean = 600  # s
+period_stddev = 60  # s
+period_max = 900  # s
+
+# How long to enable this mode for
+duration_min = 30  # s
+duration_mean = 120  # s
+duration_stddev = 60  # s
+duration_max = 300  # s
+
+# Degraded latencies
+latency_min = 1.0  # s
+latency_mean = 5.0  # s
+latency_stddev = 5.0  # s
+latency_max = 15.0  # s
+
+[anomaly__no_response]
+# "no response" anomalous settings, server stops responding to commands
+
+# Priority if multiple modes are enabled at once
+priority = 2
+
+# How often to enable this mode
+period_min = 900  # s
+period_mean = 1200  # s
+period_stddev = 300  # s
+period_max = 1800  # s
+
+# How long to enable this mode for
+duration_min = 10  # s
+duration_mean = 60  # s
+duration_stddev = 30  # s
+duration_max = 300  # s
+
+no_response = true
+
+[anomaly__drop_connection]
+# "drop connection" anomalous settings, server drops all client connections
+
+# Priority if multiple modes are enabled at once
+priority = 3
+
+# How often to enable this mode
+period_min = 900  # s
+period_mean = 1200  # s
+period_stddev = 300  # s
+period_max = 1800  # s
+
+# How long to enable this mode for
+duration_min = 1  # s
+duration_mean = 1  # s
+duration_stddev = 1  # s
+duration_max = 1  # s
+
+drop_clients = true
