@@ -17,9 +17,7 @@ def test_email_alert_content_and_trigger():
     
     mock_monitor = MagicMock()
     mock_monitor._timeout = 1
-    
-    mock_logger = MagicMock() 
-    
+        
     real_email_alerter = EmailAlert()
     
     mock_detector = MagicMock()
@@ -32,7 +30,6 @@ def test_email_alert_content_and_trigger():
 
     kibble_inst = Kibble(
         monitors=[mock_monitor], 
-        loggers=[mock_logger],
         alerters=[real_email_alerter], 
         detector=mock_detector, 
         interval=10

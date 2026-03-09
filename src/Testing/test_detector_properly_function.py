@@ -13,16 +13,16 @@ def test_reachable_host_detection_and_silence():
     Scenario: A device is online with healthy latency (20ms).
     System should log it as INFO and send no alerts
     """
-    detector = LatencyDetector(depth=2, warn_thresh=500)
+    detector = LatencyDetector(depth=2, low_thresh=500)
     healthy_ip = "192.168.1.50"
     
     healthy_status = {'alive': True, 'latency': 20}
     
     detected_level = detector.get_level(healthy_ip, healthy_status)
     
-    assert detected_level == LogLevel.INFO, f"Expected INFO for 20ms, got {detected_level.name}"
+    assert detected_level == LogLevel.DEBUG, f"Expected DEBUG for 20ms, got {detected_level.name}"
 
-    # The detector should only alert if the level is > INFO
+    # The detector should only alert if the level is > DEBUG
     alerts = detector.get_alerts()
     
     assert healthy_ip not in alerts, "Alert was triggered for a healthy reachable host!"

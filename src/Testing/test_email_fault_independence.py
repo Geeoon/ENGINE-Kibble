@@ -12,9 +12,7 @@ from Kibble.Logging import LogLevel
 def test_alert_second_device_when_first_down():
     mock_monitor = MagicMock()
     mock_monitor._timeout = 1
-    
-    mock_logger = MagicMock() 
-    
+        
     mock_alerter = MagicMock()
     mock_detector = MagicMock()
 
@@ -26,7 +24,6 @@ def test_alert_second_device_when_first_down():
 
     kibble_inst = Kibble(
         monitors=[mock_monitor], 
-        loggers=[mock_logger],
         alerters=[mock_alerter], 
         detector=mock_detector, 
         interval=10

@@ -30,7 +30,7 @@ def test_alert_escalation_logic():
     """
     device is in warning then goes down to critical, creating new system alert
     """
-    detector = LatencyDetector(depth=2, warn_thresh=500)
+    detector = LatencyDetector(depth=2, low_thresh=500)
     ip = "10.128.0.6"
 
     detector.get_level(ip, {'alive': True, 'latency': 600})

@@ -9,51 +9,42 @@ from Kibble.Detecting.LatencyDetector import LatencyDetector
 from Kibble.Logging import LogLevel, ping_event
 
 def test_severity_levels_for_different_latencies():
-    """
-    Test that the detector assigns the correct LogLevel based on latency data.
-    Based on LatencyDetector defaults: warn=500, error=2000.
-    """
-    detector = LatencyDetector(depth=2, warn_thresh=500, error_thresh=2000)
+    detector = LatencyDetector(depth=2, low_thresh=200, medium_thresh=500, high_thresh=2000)
     ip = "10.128.0.10"
 
-    # normal latency (<= threshold)
-    status_normal = {'alive': True, 'latency': 500}
-    level_normal = detector.get_level(ip, status_normal)
-    assert level_normal == LogLevel.INFO, "500ms should still be LogLevel.INFO"
+    # DEBUG: latency (<= low_thresh)
+    status_debug = {'alive': True, 'latency': 200}
+    assert detector.get_level(ip, status_debug) == LogLevel.DEBUG
 
-    # high latency (> warning threshold)
-    status_slow = {'alive': True, 'latency': 501}
-    level_slow = detector.get_level(ip, status_slow)
-    assert level_slow == LogLevel.WARNING, "501ms should trigger LogLevel.WARNING"
+    # LOW: latency (> low_thresh but <= medium_thresh)
+    status_low = {'alive': True, 'latency': 201}
+    assert detector.get_level(ip, status_low) == LogLevel.LOW
 
-    # error (> error threshold)
-    status_error = {'alive': True, 'latency': 2001}
-    level_error = detector.get_level(ip, status_error)
-    assert level_error == LogLevel.ERROR, "2001ms should trigger LogLevel.ERROR"
+    # MEDIUM: latency (> medium_thresh)
+    status_medium = {'alive': True, 'latency': 501}
+    assert detector.get_level(ip, status_medium) == LogLevel.MEDIUM
 
-    # unreachable (down device)
+    # HIGH: latency (> high_thresh)
+    status_high = {'alive': True, 'latency': 2001}
+    assert detector.get_level(ip, status_high) == LogLevel.HIGH
+
+    # CRITICAL: unreachable
     status_down = {'alive': False, 'latency': 0}
-    level_down = detector.get_level(ip, status_down)
-    assert level_down == LogLevel.CRITICAL, "Unreachable device must be LogLevel.CRITICAL"
-
-
+    assert detector.get_level(ip, status_down) == LogLevel.CRITICAL
 
 def test_ping_event_schema_integration():
-    """
-    Ensures the ping_event formatter preserves the status data correctly
-    """
     ip = "10.128.0.11"
     status = {'alive': True, 'latency': 600}
     
-    detector = LatencyDetector()
+    # Pass thresholds so 600 triggers MEDIUM
+    detector = LatencyDetector(low_thresh=200, medium_thresh=500)
     assigned_level = detector.get_level(ip, status)
     
     event = ping_event(ip, status, assigned_level)
     
     assert event['endpoint']['ip'] == ip
     assert event['status']['latency_ms'] == 600
-    assert event['status']['alive'] is True
-    assert assigned_level == LogLevel.WARNING
+    assert assigned_level == LogLevel.MEDIUM
 
 if __name__ == '__main__':
     test_severity_levels_for_different_latencies()

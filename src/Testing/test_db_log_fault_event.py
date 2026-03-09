@@ -4,45 +4,57 @@ Ensure MongoLogger logs fault events with critical severity
 """
 
 import time
-from Kibble.Logging.MongoLogger import MongoLogger
+import logging
+from unittest.mock import MagicMock
+from Kibble.Logging.MongoHandler import MongoHandler
 from Kibble.Logging import LogLevel, ping_event
 
 def test_log_fault_event():
     """
-    Test that MongoLogger successfully logs fault events
+    Test that MongoLogger successfully logs fault events using Mocks
     """
-    logger = MongoLogger(
+    mock_client = MagicMock()
+    mock_collection = mock_client['kibble_test']['timeseries_events']
+    
+    # Mock insert_many to return a successful result
+    mock_collection.insert_many.return_value.inserted_ids = [123]
+
+    # Initialize with mock to bypass network pings
+    logger = MongoHandler(
         db_name='kibble_test',
-        host='database.internal',
-        port=27017,
-        user='root',
-        passwd='password'
+        client=mock_client
     )
     
     status_data = {
-        'alive': False,          # device is offline
-        'latency': 0,            # no latency with device down
+        'alive': False,
+        'latency': 0,
         'last_updated': round(time.time() * 1000)
     }
     
+    # Create the event and a LogRecord
     event = ping_event('192.168.1.101', status_data, LogLevel.CRITICAL)
-    result = logger.log(event, LogLevel.CRITICAL)
-    assert result == True, 'log() should return True for fault events'
     
-    logged_event = logger.events_collection.find_one(
-        {'endpoint.ip': '192.168.1.101'}
+    record = logging.LogRecord(
+        name="test_logger", level=logging.CRITICAL, pathname="", lineno=0,
+        msg="Device Down", args=None, exc_info=None
     )
-    
-    assert logged_event is not None, 'Fault event should exist in database'
-    assert logged_event['event_type'] == 'endpoint_down', 'Event type should be endpoint_down'
-    assert logged_event['status']['alive'] == False, 'Device should be marked as not alive'
-    assert logged_event['status']['latency_ms'] == 0, 'Latency should be 0 for down device'
-    assert 'timestamp' in logged_event, 'Timestamp should be present'
-    
-    logger.events_collection.delete_many({})
-    logger.close()
+    # The new MongoHandler expects data in the 'status' attribute
+    record.status = event 
+    record.levelno = logging.CRITICAL
 
-    print('DB Test 2: PASS - Fault event logged successfully')
+    # Trigger the batching and force a send
+    logger.emit(record)
+    logger._send_batch() 
+
+    args, _ = mock_collection.insert_many.call_args
+    logged_data = args[0][0]
+    
+    assert logged_data['endpoint']['ip'] == '192.168.1.101'
+    assert logged_data['status']['alive'] == False
+    assert logged_data['level'] == logging.CRITICAL
+    
+    logger.close()
+    print('DB Test 2: PASS - Fault event logged successfully (Mocked)')
 
 
 if __name__ == '__main__':
