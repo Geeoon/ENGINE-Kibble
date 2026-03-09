@@ -9,6 +9,7 @@ from unittest.mock import MagicMock
 from Kibble.Kibble import Kibble
 from Kibble.Alerting.EmailAlert import EmailAlert
 from Kibble.Logging import LogLevel
+from Kibble.Logging.EventSchema import ICMP
 
 def test_email_alert_content_and_trigger():
     # Verify environment variable for password is set or there will be a failure
@@ -28,11 +29,14 @@ def test_email_alert_content_and_trigger():
         faulty_ip: {'level': critical_lvl}
     }
 
+    mock_client = MagicMock()
+
     kibble_inst = Kibble(
         monitors=[mock_monitor], 
         alerters=[real_email_alerter], 
         detector=mock_detector, 
-        interval=10
+        interval=10,
+        client=mock_client
     )
 
     alerts = kibble_inst.detector.get_alerts()
@@ -45,3 +49,6 @@ def test_email_alert_content_and_trigger():
     assert all(results) is True, "The real email transmission failed."
     
     print(f"Email successfully sent to kibblealert@gmail.com")
+
+if __name__ == "__main__":
+    test_email_alert_content_and_trigger()

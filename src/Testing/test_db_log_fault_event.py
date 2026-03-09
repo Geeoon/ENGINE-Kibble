@@ -1,13 +1,10 @@
-"""
-Database Test 2: Log Fault Event
-Ensure MongoLogger logs fault events with critical severity
-"""
-
 import time
 import logging
 from unittest.mock import MagicMock
+from bson import ObjectId  # Added for mandatory device_id
 from Kibble.Logging.MongoHandler import MongoHandler
-from Kibble.Logging import LogLevel, ping_event
+from Kibble.Logging import LogLevel
+from Kibble.Logging.EventSchema import ICMP  # Changed from ping_event
 
 def test_log_fault_event():
     """
@@ -31,8 +28,8 @@ def test_log_fault_event():
         'last_updated': round(time.time() * 1000)
     }
     
-    # Create the event and a LogRecord
-    event = ping_event('192.168.1.101', status_data, LogLevel.CRITICAL)
+    # UPDATED: Use ICMP and provide a dummy ObjectId
+    event = ICMP(status_data=status_data, severity=LogLevel.CRITICAL, device_id=ObjectId())
     
     record = logging.LogRecord(
         name="test_logger", level=logging.CRITICAL, pathname="", lineno=0,
@@ -49,13 +46,14 @@ def test_log_fault_event():
     args, _ = mock_collection.insert_many.call_args
     logged_data = args[0][0]
     
-    assert logged_data['endpoint']['ip'] == '192.168.1.101'
+    # UPDATED: Assert against new schema keys
+    assert isinstance(logged_data['device_id'], ObjectId)
     assert logged_data['status']['alive'] == False
-    assert logged_data['level'] == logging.CRITICAL
+    assert logged_data['event_type'] == "endpoint_down"
+    assert logged_data['severity_level'] == LogLevel.CRITICAL.value[0]
     
     logger.close()
     print('DB Test 2: PASS - Fault event logged successfully (Mocked)')
-
 
 if __name__ == '__main__':
     test_log_fault_event()

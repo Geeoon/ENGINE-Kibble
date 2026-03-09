@@ -22,11 +22,14 @@ def test_alert_second_device_when_first_down():
     }
     mock_detector.get_alerts.return_value = faults
 
+    mock_client = MagicMock()
+
     kibble_inst = Kibble(
         monitors=[mock_monitor], 
         alerters=[mock_alerter], 
         detector=mock_detector, 
-        interval=10
+        interval=10,
+        client=mock_client
     )
 
     alerts = kibble_inst.detector.get_alerts()
@@ -37,3 +40,6 @@ def test_alert_second_device_when_first_down():
     assert mock_alerter.alert.call_count == 2
     mock_alerter.alert.assert_any_call("ALERT FOR 10.128.0.1", LogLevel.CRITICAL)
     mock_alerter.alert.assert_any_call("ALERT FOR 10.128.0.2", LogLevel.CRITICAL)
+
+if __name__ == "__main__":
+    test_alert_second_device_when_first_down()
