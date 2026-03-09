@@ -15,9 +15,7 @@ class Detector(ABC):
         is generated.
         
         :param log: the log to check
-        :type log: dict
         :return: the severity of the log
-        :rtype: LogLevel
         """
         pass
 
@@ -27,6 +25,5 @@ class Detector(ABC):
         Gets a list of new alerts that should be published
         
         :return: the list of alerts
-        :rtype: dict
         """
         pass

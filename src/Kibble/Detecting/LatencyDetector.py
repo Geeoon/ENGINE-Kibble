@@ -32,9 +32,7 @@ class LatencyDetector(Detector):
         is generated.
         
         :param log: the log to check
-        :type log: dict
         :return: the severity of the log
-        :rtype: LogLevel
         """
         level = LogLevel.DEBUG
         latency = log['latency']
