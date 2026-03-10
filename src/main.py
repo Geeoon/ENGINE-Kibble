@@ -5,8 +5,22 @@ from Kibble.Alerting import EmailAlert, ScreenAlert
 from Kibble.Logging import MongoHandler
 from Kibble.Monitoring.Active import ICMPMonitor
 import logging
+import os
 
-screen_alert = ScreenAlert()
+
+mode = os.getenv("KIBBLE_MODE", "docker").strip().lower()
+if mode not in {"docker", "hardware", "hybrid"}:
+    mode = "docker"
+
+# Read .env to get secondary devices, uses default of 5
+docker_secondary_count = max(1, int(os.getenv("DOCKER_SECONDARY_COUNT", "5")))
+hardware_ips = []
+
+for ip in os.getenv("HARDWARE_IPS", "").split(","):
+    cleaned = ip.strip()
+    if cleaned:
+        hardware_ips.append(cleaned)
+
 # set up loggers
 formatter = logging.Formatter('%(asctime)s %(levelname)s %(message)s')
 
@@ -22,8 +36,14 @@ screen_status_handler.setFormatter(formatter)
 file_status_handler = logging.FileHandler("./kibble_status.log")
 file_status_handler.setLevel(logging.NOTSET)
 file_status_handler.setFormatter(formatter)
-# mongodb logging
-mongo_status_handler = MongoHandler('kibble')
+
+# mongodb logging -- Potentially change to env vars
+if mode == "hardware":
+    mongo_status_handler = MongoHandler('kibble',
+        host="localhost",
+        port=27017)
+else:
+    mongo_status_handler = MongoHandler('kibble')
 mongo_status_handler.setLevel(logging.NOTSET)
 
 # attach handlers
@@ -53,23 +73,21 @@ email_alert = EmailAlert()
 monitor = ICMPMonitor(endpoints=[], timeout=5)
 kibble = Kibble(client=mongo_status_handler.client, monitors=[monitor], alerters=[screen_alert], default_device_type=("device 1", ["ICMP"]))
 
-# testing only: add devices to db, if they don't exist, for testing.
-mongo_status_handler.db['devices'].update_one({"ip": "127.0.0.1"}, { "$setOnInsert": {
-    "device_ip": "127.0.0.1",
-    "device_type_id": kibble.default_device_type_id
-    } }, upsert=True)
-mongo_status_handler.db['devices'].update_one({"hostname": "doesnotexist.internal"}, { "$setOnInsert": {
-    "hostname": "doesnotexist.internal",
-    "device_type_id": kibble.default_device_type_id
-    } }, upsert=True)
-mongo_status_handler.db['devices'].update_one({"ip": "192.67.67.67"}, { "$setOnInsert": {
-    "device_ip": "192.67.67.67",
-    "device_type_id": kibble.default_device_type_id
-    } }, upsert=True)
-for id in range(1, 6):
-    mongo_status_handler.db['devices'].update_one({"hostname": f"simulator-secondary-{id}"}, { "$setOnInsert": {
-        "hostname": f"simulator-secondary-{id}",
-        "device_type_id": kibble.default_device_type_id
-        } }, upsert=True)
+# add to db for testing
+if mode in {"docker", "hybrid"}:
+    for i in range(1, docker_secondary_count + 1):
+        mongo_status_handler.db['devices'].update_one({"hostname": f"simulator-secondary-{i}"}, { "$setOnInsert": {
+            "hostname": f"simulator-secondary-{i}",
+            "device_type_id": kibble.default_device_type_id
+            } }, upsert=True)
+
+if mode in {"hardware", "hybrid"}:
+    for ip in hardware_ips:
+        mongo_status_handler.db['devices'].update_one({"device_ip": ip}, { "$setOnInsert": {
+            "device_ip": ip,
+            "device_type_id": kibble.default_device_type_id
+            } }, upsert=True)
+
+kibble._get_devices()
 
 kibble.run()

@@ -1,57 +1,114 @@
 #!/usr/bin/env bash
 # start script for the simulated environment
-# add the number of secondary "computers" to start as the first argument
+set -e
 
 # CONSTANTS
 readonly DEFAULT_NUM_COMPUTERS=5
 readonly MAIN_CONTAINER_NAME="kibble-main-container"
+readonly SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+readonly REPO_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
+
+# Flag to control cleaning 
+cleanup_needed=false
 
 # FUNCTIONS
+
+# Flag to control cleanup
+cleanup_needed=false
+
+cleanup() {
+    if $cleanup_needed; then
+        (cd "$SCRIPT_DIR" && docker compose down -v >/dev/null 2>&1 || true)
+    fi
+}
+trap cleanup EXIT
+
 print_help() {
-    echo "Usage: $0 [OPTION]... [COMPUTERS]"
-    echo "Starts the simulated environment and enters the main PC"
+    echo "Usage: $0 [OPTION]..."
+    echo "Starts the demo environment based on .env configuration"
     echo ""
     echo "Options"
     echo "  -h, --help    display this help message and exit"
-    echo "  COMPUTERS     the number of secondary computers to start must be a"
-    echo "                positive integer.  Defaults to $DEFAULT_NUM_COMPUTERS"
+    echo ""
+    echo "Environment variables (.env)"
+    echo "  KIBBLE_MODE             docker | hardware | hybrid (default: docker)"
+    echo "  DOCKER_SECONDARY_COUNT  positive integer (default: $DEFAULT_NUM_COMPUTERS)"
+    echo "  HARDWARE_IPS             comma-separated IPs (default: empty)"
 }
 
-num_computers=$DEFAULT_NUM_COMPUTERS
 
-# parse command line arguments
-if [ $# -ge 1 ]; then
-    if [ "$1" == "--help" ] || [ "$1" == "-h" ]; then
+# parse command line options
+if [ $# -gt 0 ]; then
+    if [ "$1" = "--help" ] || [ "$1" = "-h" ]; then
         print_help
         exit 0
-    elif ! [[ $1 =~ ^-?[0-9]+$ ]]; then
-        echo "Number of computers must be a number"
-        echo "Try '$0 --help' for more information."
-        exit 1
-    elif ! [ $1 -gt 0 ]; then
-        echo "Number of computers must a positive number"
+    else
+        echo "Unknown option: $1"
         echo "Try '$0 --help' for more information."
         exit 1
     fi
-    num_computers=$1
 fi
+
+# load environment
+if [ -f "$REPO_DIR/.env" ]; then
+    set -a
+    source "$REPO_DIR/.env"
+    set +a
+fi
+
+# determine mode
+mode="$KIBBLE_MODE"
+
+# convert mode to lowercase
+mode=$(echo "$mode" | tr '[:upper:]' '[:lower:]')
+
+# determine number of computers
+num_computers="$DOCKER_SECONDARY_COUNT"
+if [ -z "$num_computers" ]; then
+    num_computers="$DEFAULT_NUM_COMPUTERS"
+fi
+
+hardware_ips="$HARDWARE_IPS"
 
 # create db dir with correct perms
-mkdir -p db
-sudo chmod 777 db
+mkdir -p "$SCRIPT_DIR/db"
+chmod 777 "$SCRIPT_DIR/db"
 
-docker compose build
-# stop if there is an error building
-if [ $? -ne 0 ]; then
-    echo Unable to build containers
+cd "$SCRIPT_DIR"
+
+# docker or hybrid mode
+if [ "$mode" = "docker" ] || [ "$mode" = "hybrid" ]; then
+    cleanup_needed=true
+
+    docker compose build
+    docker compose up --scale secondary="$num_computers" -d
+
+    # show container IPs
+    docker inspect -f '{{.Name}} - {{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' $(docker ps -q)
+
+    docker exec -it \
+        -e KIBBLE_MODE="$mode" \
+        -e DOCKER_SECONDARY_COUNT="$num_computers" \
+        -e HARDWARE_IPS="$hardware_ips" \
+        "$MAIN_CONTAINER_NAME" bash
+
+# hardware mode
+elif [ "$mode" = "hardware" ]; then
+    cleanup_needed=true
+
+    docker compose up -d database
+
+    export KIBBLE_MODE="hardware"
+    export DOCKER_SECONDARY_COUNT="$num_computers"
+    export HARDWARE_IPS="$hardware_ips"
+
+
+    "$REPO_DIR/src/start.sh"
+
+else
+    echo "Invalid KIBBLE_MODE: $mode"
     exit 1
 fi
-
-docker compose up --scale secondary=$num_computers -d
-# command below will show IP addresses of running containers, useful for ping
-docker inspect -f '{{.Name}} - {{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' $(docker ps -q)
-docker exec -it $MAIN_CONTAINER_NAME bash
-docker compose down -v
 
 # for future reference:
 # kill containers using: docker kill <container name>
