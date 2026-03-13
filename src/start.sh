@@ -14,7 +14,7 @@ fi
 which sudo &> /dev/null
 
 if [ $? -eq 0 ]; then
-    sudo -E $(which python3) ./main.py
+    sudo --preserve-env=KIBBLE_MODE,DOCKER_SECONDARY_COUNT,HARDWARE_IPS,EMAIL_PASSWD $(which python3) ./main.py
 else
     $(which python3) ./main.py
 fi
