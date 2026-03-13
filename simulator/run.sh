@@ -90,6 +90,7 @@ if [ "$mode" = "docker" ] || [ "$mode" = "hybrid" ]; then
         -e KIBBLE_MODE="$mode" \
         -e DOCKER_SECONDARY_COUNT="$num_computers" \
         -e HARDWARE_IPS="$hardware_ips" \
+        -e EMAIL_PASSWD="$EMAIL_PASSWD" \
         "$MAIN_CONTAINER_NAME" bash
 
 # hardware mode
