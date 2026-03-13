@@ -53,12 +53,11 @@ class LatencyDetector(Detector):
             # new endpoint, add a list
             self.latency_history[endpoint] = []
 
-        # if latency is full, pop the elements
-        overfill = len(self.latency_history[endpoint]) - self.depth
-        self.latency_history[endpoint] = self.latency_history[endpoint][overfill:]
-
         # add latest to list
         self.latency_history[endpoint].append({ 'latency': latency, 'level': level })
+
+        # trim oldest entries once the history exceeds the configured depth
+        self.latency_history[endpoint] = self.latency_history[endpoint][-self.depth:]
 
     def get_alerts(self) -> dict:
         """
@@ -81,8 +80,9 @@ class LatencyDetector(Detector):
                     out[endpoint] = { 'level': history[0]['level'] }
                 continue
             
-            # if the newest log is of greater severity than all previous in history
-            if history[-1]['level'] > max(h['level'] for h in history):
+            # if the newest log is more severe than every previous sample,
+            # send alert for this endpoint
+            if history[-1]['level'] > max(h['level'] for h in history[:-1]):
                 out[endpoint] = { 'level': history[-1]['level']}
-        
+
         return out
