@@ -1,5 +1,5 @@
 """
-MongoLogger derived class from Logger
+MongoHandler derived class from logging.Handler
 """
 import logging
 from pymongo import MongoClient
@@ -12,36 +12,25 @@ class MongoHandler(logging.Handler):
     Class for logging events/data to the MongoDB.
     Events go to a time series collection; devices use a normal collection.
     """
-    def __init__(self, db_name: str='kibble', host: str='database.internal', port: int=27017, user: str='root', passwd: str='password', client: MongoClient=None, update_frequency: float=1.0):
+    def __init__(self, db_name: str='kibble', client: MongoClient=None, update_frequency: float=1.0):
         """
         Initializes a handler for logging to MongoDB
         
         :param db_name: the MongoDB database to use
-        :param host: the host of the MongoDB server
-        :param port: the port of the MongoDB server
-        :param user: the username of the MongoDB server
-        :param passwd: the password of the MongoDB server
-        :param client: the client to use instead of creating a new one
+        :param client: the MongoDB client to use
         :param update_frequency: how often to send batches of logs to MongoDB in seconds
         """
         super().__init__()
-        if client is None:
-            self.client = MongoClient(f"mongodb://{user}:{passwd}@{host}:{port}")
-            self.client.admin.command('ping')  # can raise ConnectionFailure
-        else:
-            self.client = client
-
+        self.client = client
         self.db = self.client[db_name]
 
-        # Time series collection
-        time_series_options = {
-            "timeField": "timestamp",
-            "metaField": "endpoint",
-            "granularity": "seconds",
-        }
-        if EVENTS_COLLECTION not in self.db.list_collection_names():
-            self.db.create_collection(EVENTS_COLLECTION, timeseries=time_series_options)
-        self.events_collection = self.db[EVENTS_COLLECTION]
+        self.maintainance_logger = logging.getLogger("Kibble_Maintainance")
+
+        self.events_collection = None
+        try:
+            self._create_events_collection()
+        except Exception as e:
+            self.maintainance_logger.critical(f"Unable to connect to MongoDB: {str(e)}")
 
         # instead of logging individually, log in batches
         self._batch: list[tuple[dict, int]] = []
@@ -71,13 +60,29 @@ class MongoHandler(logging.Handler):
         self._batch_thread.daemon = True
         self._batch_thread.start()
 
+    def _create_events_collection(self):
+        # Time series collection
+        time_series_options = {
+            "timeField": "timestamp",
+            "metaField": "endpoint",
+            "granularity": "seconds",
+        }
+        if EVENTS_COLLECTION not in self.db.list_collection_names():
+            self.db.create_collection(EVENTS_COLLECTION, timeseries=time_series_options)
+        self.events_collection = self.db[EVENTS_COLLECTION]
+
     def _send_batch(self):
-        with self._batch_lock:
-            if len(self._batch) != 0:
-                ret = self.events_collection.insert_many([d | {"level": l} for d, l in self._batch])
-                if not ret.inserted_ids:
-                    raise Exception("Failed to insert into database")  # TODO: replace with better exception
-                self._batch.clear()
+        try:
+            if self.events_collection is not None:
+                self._create_events_collection()
+            with self._batch_lock:
+                if len(self._batch) != 0:
+                    ret = self.events_collection.insert_many([d | {"level": l} for d, l in self._batch])
+                    if not ret.inserted_ids:
+                        raise Exception("Insertion operation failed")
+                self._batch.clear()  # don't clear unless we succeed
+        except Exception as e:
+            self.maintainance_logger.critical(f"Failed to log to MongoDB: {str(e)}")
                 
     def close(self):
         self.flush()

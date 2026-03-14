@@ -38,7 +38,6 @@ try:
     mongo_client.admin.command('ping')
 except Exception as e:
     maintainance_logger.critical(f"Unable to connect to MongoDB: {str(e)}.  Events will only be maintained locally and the fallback list of devices will be used.")
-    mongo_client = None
 
 # main logger for status
 status_logger = logging.getLogger("Kibble_Status")
@@ -53,9 +52,8 @@ file_status_handler = logging.FileHandler("./kibble_status.log")
 file_status_handler.setLevel(logging.NOTSET)
 file_status_handler.setFormatter(formatter)
 # mongodb logging
-if mongo_client:
-    mongo_status_handler = MongoHandler(client=mongo_client)
-    mongo_status_handler.setLevel(logging.NOTSET)
+mongo_status_handler = MongoHandler(client=mongo_client)
+mongo_status_handler.setLevel(logging.NOTSET)
 
 # attach handlers
 # status_logger.addHandler(screen_status_handler)  # just for debugging
@@ -65,25 +63,7 @@ status_logger.addHandler(mongo_status_handler)
 screen_alert = ScreenAlert()  # TODO: replace with logger possibly
 email_alert = EmailAlert()
 
-default_endpoints = []
-if not mongo_client:
-    # pull endpoints from file
-    maintainance_logger.info("Adding devices from static files")
-    device_types = []
-    try:
-        with open('./device_types.json') as f:
-            device_types = json.load(f)
-    except FileNotFoundError as e:
-        maintainance_logger.critical(f"Unable to open device_types.json: {str(e)}")
-    if device_types:
-        try:
-            with open('./devices.json') as f:
-                devices = json.load(f)
-        except FileNotFoundError as e:
-            maintainance_logger.critical(f"Unable to open devices.json: {str(e)}")
-        # TODO: parse 
-
-monitor = ICMPMonitor(endpoints=default_endpoints, timeout=5)
+monitor = ICMPMonitor(timeout=5)
 kibble = Kibble(client=mongo_client, monitors=[monitor], alerters=[screen_alert], default_device_type=("device 1", ["ICMP"]))
 
 # testing only: add devices to db, if they don't exist, for testing.
@@ -110,5 +90,8 @@ tries = 1
 while tries < 25:
     try:
         kibble.run()
+    except KeyboardInterrupt:
+        kibble.end("user ended (KeyboardInterrupt)")
+        break
     except Exception as e:
         maintainance_logger.critical(f"Uncaught exception: {str(e)}.  Attemping to restart the service, try {tries}")
