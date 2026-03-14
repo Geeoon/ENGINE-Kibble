@@ -73,7 +73,7 @@ class MongoHandler(logging.Handler):
 
     def _send_batch(self):
         try:
-            if self.events_collection is not None:
+            if self.events_collection is None:
                 self._create_events_collection()
             with self._batch_lock:
                 if len(self._batch) != 0:

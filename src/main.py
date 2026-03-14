@@ -64,27 +64,29 @@ screen_alert = ScreenAlert()  # TODO: replace with logger possibly
 email_alert = EmailAlert()
 
 monitor = ICMPMonitor(timeout=5)
-kibble = Kibble(client=mongo_client, monitors=[monitor], alerters=[screen_alert], default_device_type=("device 1", ["ICMP"]))
-
+try:
+    kibble = Kibble(client=mongo_client, monitors=[monitor], alerters=[screen_alert], default_device_type=("device 1", ["ICMP"]))
+except Exception as e:
+    maintainance_logger.critical(f"Failed to start Kibble: {str(e)}")
+    quit()
 # testing only: add devices to db, if they don't exist, for testing.
-if mongo_status_handler:
-    mongo_status_handler.db['devices'].update_one({"device_ip": "127.0.0.1"}, { "$setOnInsert": {
-        "device_ip": "127.0.0.1",
+mongo_status_handler.db['devices'].update_one({"device_ip": "127.0.0.1"}, { "$setOnInsert": {
+    "device_ip": "127.0.0.1",
+    "device_type_id": kibble.default_device_type_id
+    } }, upsert=True)
+mongo_status_handler.db['devices'].update_one({"hostname": "doesnotexist.internal"}, { "$setOnInsert": {
+    "hostname": "doesnotexist.internal",
+    "device_type_id": kibble.default_device_type_id
+    } }, upsert=True)
+mongo_status_handler.db['devices'].update_one({"device_ip": "192.67.67.67"}, { "$setOnInsert": {
+    "device_ip": "192.67.67.67",
+    "device_type_id": kibble.default_device_type_id
+    } }, upsert=True)
+for id in range(1, 6):
+    mongo_status_handler.db['devices'].update_one({"hostname": f"simulator-secondary-{id}"}, { "$setOnInsert": {
+        "hostname": f"simulator-secondary-{id}",
         "device_type_id": kibble.default_device_type_id
         } }, upsert=True)
-    mongo_status_handler.db['devices'].update_one({"hostname": "doesnotexist.internal"}, { "$setOnInsert": {
-        "hostname": "doesnotexist.internal",
-        "device_type_id": kibble.default_device_type_id
-        } }, upsert=True)
-    mongo_status_handler.db['devices'].update_one({"device_ip": "192.67.67.67"}, { "$setOnInsert": {
-        "device_ip": "192.67.67.67",
-        "device_type_id": kibble.default_device_type_id
-        } }, upsert=True)
-    for id in range(1, 6):
-        mongo_status_handler.db['devices'].update_one({"hostname": f"simulator-secondary-{id}"}, { "$setOnInsert": {
-            "hostname": f"simulator-secondary-{id}",
-            "device_type_id": kibble.default_device_type_id
-            } }, upsert=True)
 
 tries = 1
 while tries < 25:

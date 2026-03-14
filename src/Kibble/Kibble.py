@@ -62,7 +62,7 @@ class Kibble:
         self.interval = interval
 
         self.device_retriever = DeviceRetriever(client=client)
-        self.default_device_type_id = self.device_retriever.ensure_device_type(default_device_type, ['ICMP']) 
+        self.default_device_type_id = self.device_retriever.ensure_device_type(default_device_type, ['ICMP'])
         # Collections
         self.devices_collection = self.device_retriever.devices_collection
 
@@ -103,7 +103,7 @@ class Kibble:
             # wait until next interval
             if not behind:
                 sleep_time = self.interval - end_time + start_time
-                self.maintainance_logger.debug(f"Waiting {round(sleep_time, 1)} seconds until scanning again")
+                self.maintainance_logger.debug(f"Waiting {round(sleep_time, 1)} seconds before scanning again")
                 time.sleep(sleep_time)
 
     async def _rescan(self):
