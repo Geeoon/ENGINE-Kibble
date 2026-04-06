@@ -3,7 +3,7 @@
 from Kibble import Kibble
 from Kibble.Alerting import EmailAlert, ScreenAlert
 from Kibble.Logging import MongoHandler
-from Kibble.Monitoring.Active import ICMPMonitor
+from Kibble.Monitoring.Active import ICMPMonitor, PingMonitor
 import logging
 import os
 
@@ -70,8 +70,11 @@ maintainance_logger.addHandler(file_maintainance_handler)  # keep a log of the p
 screen_alert = ScreenAlert()  # TODO: replace with logger possibly
 email_alert = EmailAlert()
 
-monitor = ICMPMonitor(endpoints=[], timeout=5)
-kibble = Kibble(client=mongo_status_handler.client, monitors=[monitor], alerters=[screen_alert], default_device_type=("device 1", ["ICMP"]))
+if mode == "hybrid":
+    monitor = PingMonitor(endpoints=[], timeout=5)
+else:
+    monitor = ICMPMonitor(endpoints=[], timeout=5)
+kibble = Kibble(client=mongo_status_handler.client, monitors=[monitor], alerters=[screen_alert, email_alert], default_device_type=("device 1", ["ICMP"]))
 
 # add to db for testing
 if mode in {"docker", "hybrid"}:
