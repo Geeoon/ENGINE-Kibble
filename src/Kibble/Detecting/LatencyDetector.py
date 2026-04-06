@@ -84,5 +84,8 @@ class LatencyDetector(Detector):
             # if the newest log is of greater severity than all previous in history
             if history[-1]['level'] > max(h['level'] for h in history):
                 out[endpoint] = { 'level': history[-1]['level']}
+            # if the newest log is of lower severity than the previous
+            elif history[-1]['level'] < history[-2]['level']:
+                out[endpoint] = { 'level': history[-1]['level'] }
         
         return out
