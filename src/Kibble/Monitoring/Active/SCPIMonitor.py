@@ -56,7 +56,7 @@ class SCPIMonitor(StatusMonitor):
         :return: the result from the IDN, or None if no response
         """
         scpi_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        scpi_socket.settimeout(self.timeout)
+        scpi_socket.settimeout(self._timeout)
         try:
             scpi_socket.connect((target, self.port))
             scpi_socket.send("*IDN?")
@@ -86,7 +86,6 @@ class SCPIMonitor(StatusMonitor):
         # NOTE: could be some overhead from the thread starting and ending
         response = await loop.run_in_executor(self._executor, lambda: self._get_scpi_idn(ip))
         response_time = time.time() 
-
         # timed out
         if not response:
             return (False, self._timeout * 1000, round(response_time * 1000))
