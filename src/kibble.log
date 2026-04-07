@@ -1,0 +1,430 @@
+2026-03-14 15:12:58,973 CRITICAL Unable to connect to MongoDB: database.internal:27017: [Errno -2] Name or service not known (configured timeouts: socketTimeoutMS: 20000.0ms, connectTimeoutMS: 20000.0ms), Timeout: 30s, Topology Description: <TopologyDescription id: 69b5dd4c517cba255b7c706d, topology_type: Unknown, servers: [<ServerDescription ('database.internal', 27017) server_type: Unknown, rtt: None, error=AutoReconnect('database.internal:27017: [Errno -2] Name or service not known (configured timeouts: socketTimeoutMS: 20000.0ms, connectTimeoutMS: 20000.0ms)')>]>.  Events will only be maintained locally and the fallback list of devices will be used.
+2026-03-14 15:13:29,358 CRITICAL Unable to connect to MongoDB: database.internal:27017: [Errno -2] Name or service not known (configured timeouts: socketTimeoutMS: 20000.0ms, connectTimeoutMS: 20000.0ms), Timeout: 30s, Topology Description: <TopologyDescription id: 69b5dd4c517cba255b7c706d, topology_type: Unknown, servers: [<ServerDescription ('database.internal', 27017) server_type: Unknown, rtt: None, error=AutoReconnect('database.internal:27017: [Errno -2] Name or service not known (configured timeouts: socketTimeoutMS: 20000.0ms, connectTimeoutMS: 20000.0ms)')>]>
+2026-03-14 15:13:29,359 DEBUG Starting the Kibble service
+2026-03-14 15:13:59,702 CRITICAL Unable to create the devices and device_types collection: database.internal:27017: [Errno -2] Name or service not known (configured timeouts: socketTimeoutMS: 20000.0ms, connectTimeoutMS: 20000.0ms), Timeout: 30s, Topology Description: <TopologyDescription id: 69b5dd4c517cba255b7c706d, topology_type: Unknown, servers: [<ServerDescription ('database.internal', 27017) server_type: Unknown, rtt: None, error=AutoReconnect('database.internal:27017: [Errno -2] Name or service not known (configured timeouts: socketTimeoutMS: 20000.0ms, connectTimeoutMS: 20000.0ms)')>]>
+2026-03-14 15:13:59,703 INFO Adding devices from files
+2026-03-14 15:13:59,703 INFO Adding device from file: 69a65a1ba9713e22895f8116
+2026-03-14 15:15:30,509 CRITICAL Unable to connect to MongoDB: database.internal:27017: [Errno -2] Name or service not known (configured timeouts: socketTimeoutMS: 20000.0ms, connectTimeoutMS: 20000.0ms), Timeout: 30s, Topology Description: <TopologyDescription id: 69b5dde42596b8a582a34738, topology_type: Unknown, servers: [<ServerDescription ('database.internal', 27017) server_type: Unknown, rtt: None, error=AutoReconnect('database.internal:27017: [Errno -2] Name or service not known (configured timeouts: socketTimeoutMS: 20000.0ms, connectTimeoutMS: 20000.0ms)')>]>.  Events will only be maintained locally and the fallback list of devices will be used.
+2026-03-14 15:16:00,636 CRITICAL Unable to connect to MongoDB: database.internal:27017: [Errno -2] Name or service not known (configured timeouts: socketTimeoutMS: 20000.0ms, connectTimeoutMS: 20000.0ms), Timeout: 30s, Topology Description: <TopologyDescription id: 69b5dde42596b8a582a34738, topology_type: Unknown, servers: [<ServerDescription ('database.internal', 27017) server_type: Unknown, rtt: None, error=AutoReconnect('database.internal:27017: [Errno -2] Name or service not known (configured timeouts: socketTimeoutMS: 20000.0ms, connectTimeoutMS: 20000.0ms)')>]>
+2026-03-14 15:16:00,637 DEBUG Starting the Kibble service
+2026-03-14 15:16:31,096 CRITICAL Unable to create the devices and device_types collection: database.internal:27017: [Errno -2] Name or service not known (configured timeouts: socketTimeoutMS: 20000.0ms, connectTimeoutMS: 20000.0ms), Timeout: 30s, Topology Description: <TopologyDescription id: 69b5dde42596b8a582a34738, topology_type: Unknown, servers: [<ServerDescription ('database.internal', 27017) server_type: Unknown, rtt: None, error=AutoReconnect('database.internal:27017: [Errno -2] Name or service not known (configured timeouts: socketTimeoutMS: 20000.0ms, connectTimeoutMS: 20000.0ms)')>]>
+2026-03-14 15:16:31,097 INFO Adding devices from files
+2026-03-14 15:16:31,097 INFO Adding device from file: 69a65a1ba9713e22895f8116
+2026-03-14 15:18:10,346 CRITICAL Unable to connect to MongoDB: database.internal:27017: [Errno -2] Name or service not known (configured timeouts: socketTimeoutMS: 20000.0ms, connectTimeoutMS: 20000.0ms), Timeout: 30s, Topology Description: <TopologyDescription id: 69b5de84b99b146f8d52b78d, topology_type: Unknown, servers: [<ServerDescription ('database.internal', 27017) server_type: Unknown, rtt: None, error=AutoReconnect('database.internal:27017: [Errno -2] Name or service not known (configured timeouts: socketTimeoutMS: 20000.0ms, connectTimeoutMS: 20000.0ms)')>]>.  Events will only be maintained locally and the fallback list of devices will be used.
+2026-03-14 15:18:40,368 CRITICAL Unable to connect to MongoDB: database.internal:27017: [Errno -2] Name or service not known (configured timeouts: socketTimeoutMS: 20000.0ms, connectTimeoutMS: 20000.0ms), Timeout: 30s, Topology Description: <TopologyDescription id: 69b5de84b99b146f8d52b78d, topology_type: Unknown, servers: [<ServerDescription ('database.internal', 27017) server_type: Unknown, rtt: None, error=AutoReconnect('database.internal:27017: [Errno -2] Name or service not known (configured timeouts: socketTimeoutMS: 20000.0ms, connectTimeoutMS: 20000.0ms)')>]>
+2026-03-14 15:18:40,369 DEBUG Starting the Kibble service
+2026-03-14 15:19:10,408 CRITICAL Unable to create the devices and device_types collection: database.internal:27017: [Errno -2] Name or service not known (configured timeouts: socketTimeoutMS: 20000.0ms, connectTimeoutMS: 20000.0ms), Timeout: 30s, Topology Description: <TopologyDescription id: 69b5de84b99b146f8d52b78d, topology_type: Unknown, servers: [<ServerDescription ('database.internal', 27017) server_type: Unknown, rtt: None, error=AutoReconnect('database.internal:27017: [Errno -2] Name or service not known (configured timeouts: socketTimeoutMS: 20000.0ms, connectTimeoutMS: 20000.0ms)')>]>
+2026-03-14 15:19:10,408 INFO Adding devices from files
+2026-03-14 15:19:10,408 INFO Adding device from file: 69a65a1ba9713e22895f8116
+2026-03-14 15:19:10,409 INFO Adding device from file: 69a65a1ba9713e22895f8117
+2026-03-14 15:19:10,409 INFO Adding device from file: 69a65a1ba9713e22895f8118
+2026-03-14 15:19:10,409 INFO Adding device from file: 69a65a1ba9713e22895f8119
+2026-03-14 15:19:10,409 INFO Adding device from file: 69a65a1ba9713e22895f811a
+2026-03-14 15:19:10,409 INFO Adding device from file: 69a65a1ba9713e22895f811b
+2026-03-14 15:19:10,410 INFO Adding device from file: 69a65a1ba9713e22895f811c
+2026-03-14 15:19:10,410 INFO Adding device from file: 69a65a2e2b7786f2fc2e37b8
+2026-03-14 15:19:40,529 CRITICAL Unable to ensure device type for ('device 1', ['ICMP']): database.internal:27017: [Errno -2] Name or service not known (configured timeouts: socketTimeoutMS: 20000.0ms, connectTimeoutMS: 20000.0ms), Timeout: 30s, Topology Description: <TopologyDescription id: 69b5de84b99b146f8d52b78d, topology_type: Unknown, servers: [<ServerDescription ('database.internal', 27017) server_type: Unknown, rtt: None, error=AutoReconnect('database.internal:27017: [Errno -2] Name or service not known (configured timeouts: socketTimeoutMS: 20000.0ms, connectTimeoutMS: 20000.0ms)')>]>
+2026-03-14 15:19:40,529 DEBUG Getting devices from database
+2026-03-14 15:20:10,890 CRITICAL Failed to get latest devices from MongoDB: database.internal:27017: [Errno -2] Name or service not known (configured timeouts: socketTimeoutMS: 20000.0ms, connectTimeoutMS: 20000.0ms), Timeout: 30s, Topology Description: <TopologyDescription id: 69b5de84b99b146f8d52b78d, topology_type: Unknown, servers: [<ServerDescription ('database.internal', 27017) server_type: Unknown, rtt: None, error=AutoReconnect('database.internal:27017: [Errno -2] Name or service not known (configured timeouts: socketTimeoutMS: 20000.0ms, connectTimeoutMS: 20000.0ms)')>]>
+2026-03-14 15:20:10,891 ERROR 69a65a1ba9713e22895f8116 attempting to use unsupported protocol _id
+2026-03-14 15:20:10,891 ERROR 69a65a1ba9713e22895f8116 attempting to use unsupported protocol name
+2026-03-14 15:20:10,891 ERROR 69a65a1ba9713e22895f8116 attempting to use unsupported protocol protocols_supported
+2026-03-14 15:20:10,891 ERROR 69a65a1ba9713e22895f8117 attempting to use unsupported protocol _id
+2026-03-14 15:20:10,891 ERROR 69a65a1ba9713e22895f8117 attempting to use unsupported protocol name
+2026-03-14 15:20:10,892 ERROR 69a65a1ba9713e22895f8117 attempting to use unsupported protocol protocols_supported
+2026-03-14 15:20:10,892 ERROR 69a65a1ba9713e22895f8118 attempting to use unsupported protocol _id
+2026-03-14 15:20:10,892 ERROR 69a65a1ba9713e22895f8118 attempting to use unsupported protocol name
+2026-03-14 15:20:10,892 ERROR 69a65a1ba9713e22895f8118 attempting to use unsupported protocol protocols_supported
+2026-03-14 15:20:10,892 ERROR 69a65a1ba9713e22895f8119 attempting to use unsupported protocol _id
+2026-03-14 15:20:10,892 ERROR 69a65a1ba9713e22895f8119 attempting to use unsupported protocol name
+2026-03-14 15:20:10,892 ERROR 69a65a1ba9713e22895f8119 attempting to use unsupported protocol protocols_supported
+2026-03-14 15:20:10,892 ERROR 69a65a1ba9713e22895f811a attempting to use unsupported protocol _id
+2026-03-14 15:20:10,892 ERROR 69a65a1ba9713e22895f811a attempting to use unsupported protocol name
+2026-03-14 15:20:10,892 ERROR 69a65a1ba9713e22895f811a attempting to use unsupported protocol protocols_supported
+2026-03-14 15:20:10,892 ERROR 69a65a1ba9713e22895f811b attempting to use unsupported protocol _id
+2026-03-14 15:20:10,893 ERROR 69a65a1ba9713e22895f811b attempting to use unsupported protocol name
+2026-03-14 15:20:10,893 ERROR 69a65a1ba9713e22895f811b attempting to use unsupported protocol protocols_supported
+2026-03-14 15:20:10,893 ERROR 69a65a1ba9713e22895f811c attempting to use unsupported protocol _id
+2026-03-14 15:20:10,893 ERROR 69a65a1ba9713e22895f811c attempting to use unsupported protocol name
+2026-03-14 15:20:10,893 ERROR 69a65a1ba9713e22895f811c attempting to use unsupported protocol protocols_supported
+2026-03-14 15:20:10,893 ERROR 69a65a2e2b7786f2fc2e37b8 attempting to use unsupported protocol _id
+2026-03-14 15:20:10,893 ERROR 69a65a2e2b7786f2fc2e37b8 attempting to use unsupported protocol name
+2026-03-14 15:20:10,893 ERROR 69a65a2e2b7786f2fc2e37b8 attempting to use unsupported protocol protocols_supported
+2026-03-14 15:24:57,243 CRITICAL Unable to connect to MongoDB: database.internal:27017: [Errno -2] Name or service not known (configured timeouts: socketTimeoutMS: 20000.0ms, connectTimeoutMS: 20000.0ms), Timeout: 30s, Topology Description: <TopologyDescription id: 69b5e01a8c0f6896f74e761c, topology_type: Unknown, servers: [<ServerDescription ('database.internal', 27017) server_type: Unknown, rtt: None, error=AutoReconnect('database.internal:27017: [Errno -2] Name or service not known (configured timeouts: socketTimeoutMS: 20000.0ms, connectTimeoutMS: 20000.0ms)')>]>.  Events will only be maintained locally and the fallback list of devices will be used.
+2026-03-14 15:25:27,509 CRITICAL Unable to connect to MongoDB: database.internal:27017: [Errno -2] Name or service not known (configured timeouts: socketTimeoutMS: 20000.0ms, connectTimeoutMS: 20000.0ms), Timeout: 30s, Topology Description: <TopologyDescription id: 69b5e01a8c0f6896f74e761c, topology_type: Unknown, servers: [<ServerDescription ('database.internal', 27017) server_type: Unknown, rtt: None, error=AutoReconnect('database.internal:27017: [Errno -2] Name or service not known (configured timeouts: socketTimeoutMS: 20000.0ms, connectTimeoutMS: 20000.0ms)')>]>
+2026-03-14 15:25:27,510 DEBUG Starting the Kibble service
+2026-03-14 15:25:57,676 CRITICAL Unable to create the devices and device_types collection: database.internal:27017: [Errno -2] Name or service not known (configured timeouts: socketTimeoutMS: 20000.0ms, connectTimeoutMS: 20000.0ms), Timeout: 30s, Topology Description: <TopologyDescription id: 69b5e01a8c0f6896f74e761c, topology_type: Unknown, servers: [<ServerDescription ('database.internal', 27017) server_type: Unknown, rtt: None, error=AutoReconnect('database.internal:27017: [Errno -2] Name or service not known (configured timeouts: socketTimeoutMS: 20000.0ms, connectTimeoutMS: 20000.0ms)')>]>
+2026-03-14 15:25:57,676 INFO Adding devices from files
+2026-03-14 15:25:57,677 INFO Adding device from file: 69a65a1ba9713e22895f8116
+2026-03-14 15:25:57,677 INFO Adding device from file: 69a65a1ba9713e22895f8117
+2026-03-14 15:25:57,677 INFO Adding device from file: 69a65a1ba9713e22895f8118
+2026-03-14 15:25:57,677 INFO Adding device from file: 69a65a1ba9713e22895f8119
+2026-03-14 15:25:57,677 INFO Adding device from file: 69a65a1ba9713e22895f811a
+2026-03-14 15:25:57,677 INFO Adding device from file: 69a65a1ba9713e22895f811b
+2026-03-14 15:25:57,678 INFO Adding device from file: 69a65a1ba9713e22895f811c
+2026-03-14 15:25:57,678 INFO Adding device from file: 69a65a2e2b7786f2fc2e37b8
+2026-03-14 15:26:28,019 CRITICAL Unable to ensure device type for ('device 1', ['ICMP']): database.internal:27017: [Errno -2] Name or service not known (configured timeouts: socketTimeoutMS: 20000.0ms, connectTimeoutMS: 20000.0ms), Timeout: 30s, Topology Description: <TopologyDescription id: 69b5e01a8c0f6896f74e761c, topology_type: Unknown, servers: [<ServerDescription ('database.internal', 27017) server_type: Unknown, rtt: None, error=AutoReconnect('database.internal:27017: [Errno -2] Name or service not known (configured timeouts: socketTimeoutMS: 20000.0ms, connectTimeoutMS: 20000.0ms)')>]>
+2026-03-14 15:26:28,020 DEBUG Getting devices from database
+2026-03-14 15:26:58,357 CRITICAL Failed to get latest devices from MongoDB: database.internal:27017: [Errno -2] Name or service not known (configured timeouts: socketTimeoutMS: 20000.0ms, connectTimeoutMS: 20000.0ms), Timeout: 30s, Topology Description: <TopologyDescription id: 69b5e01a8c0f6896f74e761c, topology_type: Unknown, servers: [<ServerDescription ('database.internal', 27017) server_type: Unknown, rtt: None, error=AutoReconnect('database.internal:27017: [Errno -2] Name or service not known (configured timeouts: socketTimeoutMS: 20000.0ms, connectTimeoutMS: 20000.0ms)')>]>
+2026-03-14 15:26:58,358 ERROR 69a65a1ba9713e22895f8116 attempting to use unsupported protocol _id
+2026-03-14 15:26:58,358 ERROR 69a65a1ba9713e22895f8116 attempting to use unsupported protocol name
+2026-03-14 15:26:58,358 ERROR 69a65a1ba9713e22895f8116 attempting to use unsupported protocol protocols_supported
+2026-03-14 15:26:58,358 ERROR 69a65a1ba9713e22895f8117 attempting to use unsupported protocol _id
+2026-03-14 15:26:58,358 ERROR 69a65a1ba9713e22895f8117 attempting to use unsupported protocol name
+2026-03-14 15:26:58,358 ERROR 69a65a1ba9713e22895f8117 attempting to use unsupported protocol protocols_supported
+2026-03-14 15:26:58,358 ERROR 69a65a1ba9713e22895f8118 attempting to use unsupported protocol _id
+2026-03-14 15:26:58,359 ERROR 69a65a1ba9713e22895f8118 attempting to use unsupported protocol name
+2026-03-14 15:26:58,359 ERROR 69a65a1ba9713e22895f8118 attempting to use unsupported protocol protocols_supported
+2026-03-14 15:26:58,359 ERROR 69a65a1ba9713e22895f8119 attempting to use unsupported protocol _id
+2026-03-14 15:26:58,359 ERROR 69a65a1ba9713e22895f8119 attempting to use unsupported protocol name
+2026-03-14 15:26:58,359 ERROR 69a65a1ba9713e22895f8119 attempting to use unsupported protocol protocols_supported
+2026-03-14 15:26:58,359 ERROR 69a65a1ba9713e22895f811a attempting to use unsupported protocol _id
+2026-03-14 15:26:58,359 ERROR 69a65a1ba9713e22895f811a attempting to use unsupported protocol name
+2026-03-14 15:26:58,359 ERROR 69a65a1ba9713e22895f811a attempting to use unsupported protocol protocols_supported
+2026-03-14 15:26:58,359 ERROR 69a65a1ba9713e22895f811b attempting to use unsupported protocol _id
+2026-03-14 15:26:58,359 ERROR 69a65a1ba9713e22895f811b attempting to use unsupported protocol name
+2026-03-14 15:26:58,359 ERROR 69a65a1ba9713e22895f811b attempting to use unsupported protocol protocols_supported
+2026-03-14 15:26:58,360 ERROR 69a65a1ba9713e22895f811c attempting to use unsupported protocol _id
+2026-03-14 15:26:58,360 ERROR 69a65a1ba9713e22895f811c attempting to use unsupported protocol name
+2026-03-14 15:26:58,360 ERROR 69a65a1ba9713e22895f811c attempting to use unsupported protocol protocols_supported
+2026-03-14 15:26:58,360 ERROR 69a65a2e2b7786f2fc2e37b8 attempting to use unsupported protocol _id
+2026-03-14 15:26:58,360 ERROR 69a65a2e2b7786f2fc2e37b8 attempting to use unsupported protocol name
+2026-03-14 15:26:58,360 ERROR 69a65a2e2b7786f2fc2e37b8 attempting to use unsupported protocol protocols_supported
+2026-03-14 15:29:32,629 CRITICAL Unable to connect to MongoDB: database.internal:27017: [Errno -2] Name or service not known (configured timeouts: socketTimeoutMS: 20000.0ms, connectTimeoutMS: 20000.0ms), Timeout: 30s, Topology Description: <TopologyDescription id: 69b5e12e8c5c1d97218186f5, topology_type: Unknown, servers: [<ServerDescription ('database.internal', 27017) server_type: Unknown, rtt: None, error=AutoReconnect('database.internal:27017: [Errno -2] Name or service not known (configured timeouts: socketTimeoutMS: 20000.0ms, connectTimeoutMS: 20000.0ms)')>]>.  Events will only be maintained locally and the fallback list of devices will be used.
+2026-03-14 15:30:02,877 CRITICAL Unable to connect to MongoDB: database.internal:27017: [Errno -2] Name or service not known (configured timeouts: socketTimeoutMS: 20000.0ms, connectTimeoutMS: 20000.0ms), Timeout: 30s, Topology Description: <TopologyDescription id: 69b5e12e8c5c1d97218186f5, topology_type: Unknown, servers: [<ServerDescription ('database.internal', 27017) server_type: Unknown, rtt: None, error=AutoReconnect('database.internal:27017: [Errno -2] Name or service not known (configured timeouts: socketTimeoutMS: 20000.0ms, connectTimeoutMS: 20000.0ms)')>]>
+2026-03-14 15:30:02,877 DEBUG Starting the Kibble service
+2026-03-14 15:30:33,176 CRITICAL Unable to create the devices and device_types collection: database.internal:27017: [Errno -2] Name or service not known (configured timeouts: socketTimeoutMS: 20000.0ms, connectTimeoutMS: 20000.0ms), Timeout: 30s, Topology Description: <TopologyDescription id: 69b5e12e8c5c1d97218186f5, topology_type: Unknown, servers: [<ServerDescription ('database.internal', 27017) server_type: Unknown, rtt: None, error=AutoReconnect('database.internal:27017: [Errno -2] Name or service not known (configured timeouts: socketTimeoutMS: 20000.0ms, connectTimeoutMS: 20000.0ms)')>]>
+2026-03-14 15:30:33,176 INFO Adding devices from files
+2026-03-14 15:30:33,176 INFO Adding device from file: 69a65a1ba9713e22895f8116
+2026-03-14 15:30:33,177 INFO Adding device from file: 69a65a1ba9713e22895f8117
+2026-03-14 15:30:33,177 INFO Adding device from file: 69a65a1ba9713e22895f8118
+2026-03-14 15:30:33,177 INFO Adding device from file: 69a65a1ba9713e22895f8119
+2026-03-14 15:30:33,177 INFO Adding device from file: 69a65a1ba9713e22895f811a
+2026-03-14 15:30:33,177 INFO Adding device from file: 69a65a1ba9713e22895f811b
+2026-03-14 15:30:33,177 INFO Adding device from file: 69a65a1ba9713e22895f811c
+2026-03-14 15:30:33,178 INFO Adding device from file: 69a65a2e2b7786f2fc2e37b8
+2026-03-14 15:39:10,200 CRITICAL Unable to connect to MongoDB: database.internal:27017: [Errno -2] Name or service not known (configured timeouts: socketTimeoutMS: 20000.0ms, connectTimeoutMS: 20000.0ms), Timeout: 30s, Topology Description: <TopologyDescription id: 69b5e370db71fcbc87896499, topology_type: Unknown, servers: [<ServerDescription ('database.internal', 27017) server_type: Unknown, rtt: None, error=AutoReconnect('database.internal:27017: [Errno -2] Name or service not known (configured timeouts: socketTimeoutMS: 20000.0ms, connectTimeoutMS: 20000.0ms)')>]>.  Events will only be maintained locally and the fallback list of devices will be used.
+2026-03-14 15:39:40,395 CRITICAL Unable to connect to MongoDB: database.internal:27017: [Errno -2] Name or service not known (configured timeouts: socketTimeoutMS: 20000.0ms, connectTimeoutMS: 20000.0ms), Timeout: 30s, Topology Description: <TopologyDescription id: 69b5e370db71fcbc87896499, topology_type: Unknown, servers: [<ServerDescription ('database.internal', 27017) server_type: Unknown, rtt: None, error=AutoReconnect('database.internal:27017: [Errno -2] Name or service not known (configured timeouts: socketTimeoutMS: 20000.0ms, connectTimeoutMS: 20000.0ms)')>]>
+2026-03-14 15:39:40,396 DEBUG Starting the Kibble service
+2026-03-14 15:40:10,683 CRITICAL Unable to create the devices and device_types collection: database.internal:27017: [Errno -2] Name or service not known (configured timeouts: socketTimeoutMS: 20000.0ms, connectTimeoutMS: 20000.0ms), Timeout: 30s, Topology Description: <TopologyDescription id: 69b5e370db71fcbc87896499, topology_type: Unknown, servers: [<ServerDescription ('database.internal', 27017) server_type: Unknown, rtt: None, error=AutoReconnect('database.internal:27017: [Errno -2] Name or service not known (configured timeouts: socketTimeoutMS: 20000.0ms, connectTimeoutMS: 20000.0ms)')>]>
+2026-03-14 15:40:10,684 INFO Adding devices from files
+2026-03-14 15:40:10,684 INFO Adding device from file: 69a65a1ba9713e22895f8116
+2026-03-14 15:40:10,684 INFO Adding device from file: 69a65a1ba9713e22895f8117
+2026-03-14 15:40:10,685 INFO Adding device from file: 69a65a1ba9713e22895f8118
+2026-03-14 15:40:10,685 INFO Adding device from file: 69a65a1ba9713e22895f8119
+2026-03-14 15:40:10,685 INFO Adding device from file: 69a65a1ba9713e22895f811a
+2026-03-14 15:40:10,685 INFO Adding device from file: 69a65a1ba9713e22895f811b
+2026-03-14 15:40:10,685 INFO Adding device from file: 69a65a1ba9713e22895f811c
+2026-03-14 15:40:10,685 INFO Adding device from file: 69a65a2e2b7786f2fc2e37b8
+2026-03-14 15:40:40,818 CRITICAL Unable to ensure device type for ('device 1', ['ICMP']): database.internal:27017: [Errno -2] Name or service not known (configured timeouts: socketTimeoutMS: 20000.0ms, connectTimeoutMS: 20000.0ms), Timeout: 30s, Topology Description: <TopologyDescription id: 69b5e370db71fcbc87896499, topology_type: Unknown, servers: [<ServerDescription ('database.internal', 27017) server_type: Unknown, rtt: None, error=AutoReconnect('database.internal:27017: [Errno -2] Name or service not known (configured timeouts: socketTimeoutMS: 20000.0ms, connectTimeoutMS: 20000.0ms)')>]>
+2026-03-14 15:40:40,819 DEBUG Getting devices from database
+2026-03-14 15:41:10,871 CRITICAL Failed to get latest devices from MongoDB: database.internal:27017: [Errno -2] Name or service not known (configured timeouts: socketTimeoutMS: 20000.0ms, connectTimeoutMS: 20000.0ms), Timeout: 30s, Topology Description: <TopologyDescription id: 69b5e370db71fcbc87896499, topology_type: Unknown, servers: [<ServerDescription ('database.internal', 27017) server_type: Unknown, rtt: None, error=AutoReconnect('database.internal:27017: [Errno -2] Name or service not known (configured timeouts: socketTimeoutMS: 20000.0ms, connectTimeoutMS: 20000.0ms)')>]>
+2026-03-14 15:43:16,856 CRITICAL Unable to connect to MongoDB: database.internal:27017: [Errno -2] Name or service not known (configured timeouts: socketTimeoutMS: 20000.0ms, connectTimeoutMS: 20000.0ms), Timeout: 30s, Topology Description: <TopologyDescription id: 69b5e46661f4fff64d839143, topology_type: Unknown, servers: [<ServerDescription ('database.internal', 27017) server_type: Unknown, rtt: None, error=AutoReconnect('database.internal:27017: [Errno -2] Name or service not known (configured timeouts: socketTimeoutMS: 20000.0ms, connectTimeoutMS: 20000.0ms)')>]>.  Events will only be maintained locally and the fallback list of devices will be used.
+2026-03-14 15:43:47,328 CRITICAL Unable to connect to MongoDB: database.internal:27017: [Errno -2] Name or service not known (configured timeouts: socketTimeoutMS: 20000.0ms, connectTimeoutMS: 20000.0ms), Timeout: 30s, Topology Description: <TopologyDescription id: 69b5e46661f4fff64d839143, topology_type: Unknown, servers: [<ServerDescription ('database.internal', 27017) server_type: Unknown, rtt: None, error=AutoReconnect('database.internal:27017: [Errno -2] Name or service not known (configured timeouts: socketTimeoutMS: 20000.0ms, connectTimeoutMS: 20000.0ms)')>]>
+2026-03-14 15:43:47,329 DEBUG Starting the Kibble service
+2026-03-14 15:44:17,656 CRITICAL Unable to create the devices and device_types collection: database.internal:27017: [Errno -2] Name or service not known (configured timeouts: socketTimeoutMS: 20000.0ms, connectTimeoutMS: 20000.0ms), Timeout: 30s, Topology Description: <TopologyDescription id: 69b5e46661f4fff64d839143, topology_type: Unknown, servers: [<ServerDescription ('database.internal', 27017) server_type: Unknown, rtt: None, error=AutoReconnect('database.internal:27017: [Errno -2] Name or service not known (configured timeouts: socketTimeoutMS: 20000.0ms, connectTimeoutMS: 20000.0ms)')>]>
+2026-03-14 15:44:17,657 INFO Adding devices from files
+2026-03-14 15:44:17,657 INFO Adding device from file: 69a65a1ba9713e22895f8116
+2026-03-14 15:44:17,657 INFO Adding device from file: 69a65a1ba9713e22895f8117
+2026-03-14 15:44:17,658 INFO Adding device from file: 69a65a1ba9713e22895f8118
+2026-03-14 15:44:17,658 INFO Adding device from file: 69a65a1ba9713e22895f8119
+2026-03-14 15:44:17,658 INFO Adding device from file: 69a65a1ba9713e22895f811a
+2026-03-14 15:44:17,658 INFO Adding device from file: 69a65a1ba9713e22895f811b
+2026-03-14 15:44:17,658 INFO Adding device from file: 69a65a1ba9713e22895f811c
+2026-03-14 15:44:17,658 INFO Adding device from file: 69a65a2e2b7786f2fc2e37b8
+2026-03-14 15:44:47,675 CRITICAL Unable to ensure device type for ('device 1', ['ICMP']): database.internal:27017: [Errno -2] Name or service not known (configured timeouts: socketTimeoutMS: 20000.0ms, connectTimeoutMS: 20000.0ms), Timeout: 30s, Topology Description: <TopologyDescription id: 69b5e46661f4fff64d839143, topology_type: Unknown, servers: [<ServerDescription ('database.internal', 27017) server_type: Unknown, rtt: None, error=AutoReconnect('database.internal:27017: [Errno -2] Name or service not known (configured timeouts: socketTimeoutMS: 20000.0ms, connectTimeoutMS: 20000.0ms)')>]>
+2026-03-14 15:44:47,676 DEBUG Getting devices from database
+2026-03-14 15:45:18,103 CRITICAL Failed to get latest devices from MongoDB: database.internal:27017: [Errno -2] Name or service not known (configured timeouts: socketTimeoutMS: 20000.0ms, connectTimeoutMS: 20000.0ms), Timeout: 30s, Topology Description: <TopologyDescription id: 69b5e46661f4fff64d839143, topology_type: Unknown, servers: [<ServerDescription ('database.internal', 27017) server_type: Unknown, rtt: None, error=AutoReconnect('database.internal:27017: [Errno -2] Name or service not known (configured timeouts: socketTimeoutMS: 20000.0ms, connectTimeoutMS: 20000.0ms)')>]>
+2026-03-14 15:49:38,184 CRITICAL Unable to connect to MongoDB: database.internal:27017: [Errno -2] Name or service not known (configured timeouts: socketTimeoutMS: 20000.0ms, connectTimeoutMS: 20000.0ms), Timeout: 30s, Topology Description: <TopologyDescription id: 69b5e5e37126146c2388731b, topology_type: Unknown, servers: [<ServerDescription ('database.internal', 27017) server_type: Unknown, rtt: None, error=AutoReconnect('database.internal:27017: [Errno -2] Name or service not known (configured timeouts: socketTimeoutMS: 20000.0ms, connectTimeoutMS: 20000.0ms)')>]>.  Events will only be maintained locally and the fallback list of devices will be used.
+2026-03-14 15:50:21,272 CRITICAL Unable to connect to MongoDB: database.internal:27017: [Errno -2] Name or service not known (configured timeouts: socketTimeoutMS: 20000.0ms, connectTimeoutMS: 20000.0ms), Timeout: 30s, Topology Description: <TopologyDescription id: 69b5e60ebd8fb0d426ff87e6, topology_type: Unknown, servers: [<ServerDescription ('database.internal', 27017) server_type: Unknown, rtt: None, error=AutoReconnect('database.internal:27017: [Errno -2] Name or service not known (configured timeouts: socketTimeoutMS: 20000.0ms, connectTimeoutMS: 20000.0ms)')>]>.  Events will only be maintained locally and the fallback list of devices will be used.
+2026-03-14 15:50:51,430 CRITICAL Unable to connect to MongoDB: database.internal:27017: [Errno -2] Name or service not known (configured timeouts: socketTimeoutMS: 20000.0ms, connectTimeoutMS: 20000.0ms), Timeout: 30s, Topology Description: <TopologyDescription id: 69b5e60ebd8fb0d426ff87e6, topology_type: Unknown, servers: [<ServerDescription ('database.internal', 27017) server_type: Unknown, rtt: None, error=AutoReconnect('database.internal:27017: [Errno -2] Name or service not known (configured timeouts: socketTimeoutMS: 20000.0ms, connectTimeoutMS: 20000.0ms)')>]>
+2026-03-14 15:50:51,431 DEBUG Starting the Kibble service
+2026-03-14 15:51:21,584 CRITICAL Unable to create the devices and device_types collection: database.internal:27017: [Errno -2] Name or service not known (configured timeouts: socketTimeoutMS: 20000.0ms, connectTimeoutMS: 20000.0ms), Timeout: 30s, Topology Description: <TopologyDescription id: 69b5e60ebd8fb0d426ff87e6, topology_type: Unknown, servers: [<ServerDescription ('database.internal', 27017) server_type: Unknown, rtt: None, error=AutoReconnect('database.internal:27017: [Errno -2] Name or service not known (configured timeouts: socketTimeoutMS: 20000.0ms, connectTimeoutMS: 20000.0ms)')>]>
+2026-03-14 15:51:21,584 INFO Adding devices from files
+2026-03-14 15:51:21,585 INFO Adding device from file: 69a65a1ba9713e22895f8116
+2026-03-14 15:51:21,585 INFO Adding device from file: 69a65a1ba9713e22895f8117
+2026-03-14 15:51:21,585 INFO Adding device from file: 69a65a1ba9713e22895f8118
+2026-03-14 15:51:21,586 INFO Adding device from file: 69a65a1ba9713e22895f8119
+2026-03-14 15:51:21,586 INFO Adding device from file: 69a65a1ba9713e22895f811a
+2026-03-14 15:51:21,586 INFO Adding device from file: 69a65a1ba9713e22895f811b
+2026-03-14 15:51:21,586 INFO Adding device from file: 69a65a1ba9713e22895f811c
+2026-03-14 15:51:21,586 INFO Adding device from file: 69a65a2e2b7786f2fc2e37b8
+2026-03-14 15:51:51,805 CRITICAL Unable to ensure device type for ('device 1', ['ICMP']): database.internal:27017: [Errno -2] Name or service not known (configured timeouts: socketTimeoutMS: 20000.0ms, connectTimeoutMS: 20000.0ms), Timeout: 30s, Topology Description: <TopologyDescription id: 69b5e60ebd8fb0d426ff87e6, topology_type: Unknown, servers: [<ServerDescription ('database.internal', 27017) server_type: Unknown, rtt: None, error=AutoReconnect('database.internal:27017: [Errno -2] Name or service not known (configured timeouts: socketTimeoutMS: 20000.0ms, connectTimeoutMS: 20000.0ms)')>]>
+2026-03-14 15:51:51,805 DEBUG Getting devices from database
+2026-03-14 15:52:22,067 CRITICAL Failed to get latest devices from MongoDB: database.internal:27017: [Errno -2] Name or service not known (configured timeouts: socketTimeoutMS: 20000.0ms, connectTimeoutMS: 20000.0ms), Timeout: 30s, Topology Description: <TopologyDescription id: 69b5e60ebd8fb0d426ff87e6, topology_type: Unknown, servers: [<ServerDescription ('database.internal', 27017) server_type: Unknown, rtt: None, error=AutoReconnect('database.internal:27017: [Errno -2] Name or service not known (configured timeouts: socketTimeoutMS: 20000.0ms, connectTimeoutMS: 20000.0ms)')>]>
+2026-03-14 15:54:28,785 CRITICAL Unable to connect to MongoDB: database.internal:27017: [Errno -2] Name or service not known (configured timeouts: socketTimeoutMS: 20000.0ms, connectTimeoutMS: 20000.0ms), Timeout: 30s, Topology Description: <TopologyDescription id: 69b5e706bda664aea1708e68, topology_type: Unknown, servers: [<ServerDescription ('database.internal', 27017) server_type: Unknown, rtt: None, error=AutoReconnect('database.internal:27017: [Errno -2] Name or service not known (configured timeouts: socketTimeoutMS: 20000.0ms, connectTimeoutMS: 20000.0ms)')>]>.  Events will only be maintained locally and the fallback list of devices will be used.
+2026-03-14 15:54:59,156 CRITICAL Unable to connect to MongoDB: database.internal:27017: [Errno -2] Name or service not known (configured timeouts: socketTimeoutMS: 20000.0ms, connectTimeoutMS: 20000.0ms), Timeout: 30s, Topology Description: <TopologyDescription id: 69b5e706bda664aea1708e68, topology_type: Unknown, servers: [<ServerDescription ('database.internal', 27017) server_type: Unknown, rtt: None, error=AutoReconnect('database.internal:27017: [Errno -2] Name or service not known (configured timeouts: socketTimeoutMS: 20000.0ms, connectTimeoutMS: 20000.0ms)')>]>
+2026-03-14 15:54:59,157 DEBUG Starting the Kibble service
+2026-03-14 15:55:29,315 CRITICAL Unable to create the devices and device_types collection: database.internal:27017: [Errno -2] Name or service not known (configured timeouts: socketTimeoutMS: 20000.0ms, connectTimeoutMS: 20000.0ms), Timeout: 30s, Topology Description: <TopologyDescription id: 69b5e706bda664aea1708e68, topology_type: Unknown, servers: [<ServerDescription ('database.internal', 27017) server_type: Unknown, rtt: None, error=AutoReconnect('database.internal:27017: [Errno -2] Name or service not known (configured timeouts: socketTimeoutMS: 20000.0ms, connectTimeoutMS: 20000.0ms)')>]>
+2026-03-14 15:55:29,315 INFO Adding devices from files
+2026-03-14 15:55:29,316 INFO Adding device from file: 69a65a1ba9713e22895f8116
+2026-03-14 15:55:29,316 INFO Adding device from file: 69a65a1ba9713e22895f8117
+2026-03-14 15:55:29,316 INFO Adding device from file: 69a65a1ba9713e22895f8118
+2026-03-14 15:55:29,316 INFO Adding device from file: 69a65a1ba9713e22895f8119
+2026-03-14 15:55:29,317 INFO Adding device from file: 69a65a1ba9713e22895f811a
+2026-03-14 15:55:29,317 INFO Adding device from file: 69a65a1ba9713e22895f811b
+2026-03-14 15:55:29,317 INFO Adding device from file: 69a65a1ba9713e22895f811c
+2026-03-14 15:55:29,317 INFO Adding device from file: 69a65a2e2b7786f2fc2e37b8
+2026-03-14 15:55:59,791 CRITICAL Unable to ensure device type for ('device 1', ['ICMP']): database.internal:27017: [Errno -2] Name or service not known (configured timeouts: socketTimeoutMS: 20000.0ms, connectTimeoutMS: 20000.0ms), Timeout: 30s, Topology Description: <TopologyDescription id: 69b5e706bda664aea1708e68, topology_type: Unknown, servers: [<ServerDescription ('database.internal', 27017) server_type: Unknown, rtt: None, error=AutoReconnect('database.internal:27017: [Errno -2] Name or service not known (configured timeouts: socketTimeoutMS: 20000.0ms, connectTimeoutMS: 20000.0ms)')>]>
+2026-03-14 15:55:59,792 DEBUG Getting devices from database
+2026-03-14 15:56:29,902 CRITICAL Failed to get latest devices from MongoDB: database.internal:27017: [Errno -2] Name or service not known (configured timeouts: socketTimeoutMS: 20000.0ms, connectTimeoutMS: 20000.0ms), Timeout: 30s, Topology Description: <TopologyDescription id: 69b5e706bda664aea1708e68, topology_type: Unknown, servers: [<ServerDescription ('database.internal', 27017) server_type: Unknown, rtt: None, error=AutoReconnect('database.internal:27017: [Errno -2] Name or service not known (configured timeouts: socketTimeoutMS: 20000.0ms, connectTimeoutMS: 20000.0ms)')>]>
+2026-03-14 15:56:29,903 DEBUG Starting a network scan
+2026-03-14 15:56:29,932 CRITICAL Could not resolve the hostname for doesnotexist.internal
+2026-03-14 15:56:29,951 CRITICAL Could not resolve the hostname for simulator-secondary-1
+2026-03-14 15:56:29,992 CRITICAL Could not resolve the hostname for simulator-secondary-2
+2026-03-14 15:56:30,015 CRITICAL Could not resolve the hostname for simulator-secondary-3
+2026-03-14 15:56:31,307 CRITICAL Could not resolve the hostname for simulator-secondary-4
+2026-03-14 15:56:31,344 CRITICAL Could not resolve the hostname for simulator-secondary-5
+2026-03-14 15:56:36,445 DEBUG Finished scanning network
+2026-03-14 15:56:36,446 DEBUG Starting a network scan
+2026-03-14 15:56:36,470 CRITICAL Could not resolve the hostname for doesnotexist.internal
+2026-03-14 15:56:36,495 CRITICAL Could not resolve the hostname for simulator-secondary-1
+2026-03-14 15:56:36,543 CRITICAL Could not resolve the hostname for simulator-secondary-2
+2026-03-14 15:56:37,861 CRITICAL Could not resolve the hostname for simulator-secondary-3
+2026-03-14 15:56:37,909 CRITICAL Could not resolve the hostname for simulator-secondary-4
+2026-03-14 15:56:37,932 CRITICAL Could not resolve the hostname for simulator-secondary-5
+2026-03-14 15:56:42,993 DEBUG Finished scanning network
+2026-03-14 15:56:42,993 DEBUG Sending logs
+2026-03-14 15:56:42,994 DEBUG Sending logs
+2026-03-14 15:56:42,994 DEBUG Sending logs
+2026-03-14 15:56:42,994 DEBUG Sending logs
+2026-03-14 15:56:42,995 DEBUG Sending logs
+2026-03-14 15:56:42,995 DEBUG Sending logs
+2026-03-14 15:56:42,996 DEBUG Sending logs
+2026-03-14 15:56:42,996 DEBUG Sending logs
+2026-03-14 15:56:42,996 INFO Sending alert(s)
+2026-03-14 15:56:42,997 INFO Sending alert(s)
+2026-03-14 15:56:42,997 INFO Sending alert(s)
+2026-03-14 15:56:42,997 INFO Sending alert(s)
+2026-03-14 15:56:42,998 INFO Sending alert(s)
+2026-03-14 15:56:42,998 INFO Sending alert(s)
+2026-03-14 15:56:42,998 INFO Sending alert(s)
+2026-03-14 15:56:42,998 INFO Sending alert(s)
+2026-03-14 15:56:42,998 DEBUG Getting devices from database
+2026-03-14 15:56:43,233 CRITICAL Failed to log to MongoDB: 'NoneType' object has no attribute 'insert_many'
+2026-03-14 15:56:44,234 CRITICAL Failed to log to MongoDB: 'NoneType' object has no attribute 'insert_many'
+2026-03-14 15:56:45,235 CRITICAL Failed to log to MongoDB: 'NoneType' object has no attribute 'insert_many'
+2026-03-14 15:56:46,235 CRITICAL Failed to log to MongoDB: 'NoneType' object has no attribute 'insert_many'
+2026-03-14 15:56:47,236 CRITICAL Failed to log to MongoDB: 'NoneType' object has no attribute 'insert_many'
+2026-03-14 15:56:48,237 CRITICAL Failed to log to MongoDB: 'NoneType' object has no attribute 'insert_many'
+2026-03-14 15:56:49,238 CRITICAL Failed to log to MongoDB: 'NoneType' object has no attribute 'insert_many'
+2026-03-14 15:56:50,239 CRITICAL Failed to log to MongoDB: 'NoneType' object has no attribute 'insert_many'
+2026-03-14 15:56:51,239 CRITICAL Failed to log to MongoDB: 'NoneType' object has no attribute 'insert_many'
+2026-03-14 15:56:52,240 CRITICAL Failed to log to MongoDB: 'NoneType' object has no attribute 'insert_many'
+2026-03-14 15:56:53,241 CRITICAL Failed to log to MongoDB: 'NoneType' object has no attribute 'insert_many'
+2026-03-14 15:56:54,241 CRITICAL Failed to log to MongoDB: 'NoneType' object has no attribute 'insert_many'
+2026-03-14 15:56:55,242 CRITICAL Failed to log to MongoDB: 'NoneType' object has no attribute 'insert_many'
+2026-03-14 15:56:56,243 CRITICAL Failed to log to MongoDB: 'NoneType' object has no attribute 'insert_many'
+2026-03-14 15:56:57,244 CRITICAL Failed to log to MongoDB: 'NoneType' object has no attribute 'insert_many'
+2026-03-14 15:56:58,245 CRITICAL Failed to log to MongoDB: 'NoneType' object has no attribute 'insert_many'
+2026-03-14 15:56:59,246 CRITICAL Failed to log to MongoDB: 'NoneType' object has no attribute 'insert_many'
+2026-03-14 15:57:00,247 CRITICAL Failed to log to MongoDB: 'NoneType' object has no attribute 'insert_many'
+2026-03-14 15:57:01,248 CRITICAL Failed to log to MongoDB: 'NoneType' object has no attribute 'insert_many'
+2026-03-14 15:57:02,249 CRITICAL Failed to log to MongoDB: 'NoneType' object has no attribute 'insert_many'
+2026-03-14 15:57:03,249 CRITICAL Failed to log to MongoDB: 'NoneType' object has no attribute 'insert_many'
+2026-03-14 15:57:03,764 DEBUG user ended (KeyboardInterrupt)
+2026-03-14 15:57:04,148 CRITICAL Failed to log to MongoDB: 'NoneType' object has no attribute 'insert_many'
+2026-03-14 15:59:06,149 CRITICAL Unable to connect to MongoDB: database.internal:27017: [Errno -2] Name or service not known (configured timeouts: socketTimeoutMS: 20000.0ms, connectTimeoutMS: 20000.0ms), Timeout: 30s, Topology Description: <TopologyDescription id: 69b5e81b767b81ca7e865607, topology_type: Unknown, servers: [<ServerDescription ('database.internal', 27017) server_type: Unknown, rtt: None, error=AutoReconnect('database.internal:27017: [Errno -2] Name or service not known (configured timeouts: socketTimeoutMS: 20000.0ms, connectTimeoutMS: 20000.0ms)')>]>.  Events will only be maintained locally and the fallback list of devices will be used.
+2026-03-14 15:59:36,301 CRITICAL Unable to connect to MongoDB: database.internal:27017: [Errno -2] Name or service not known (configured timeouts: socketTimeoutMS: 20000.0ms, connectTimeoutMS: 20000.0ms), Timeout: 30s, Topology Description: <TopologyDescription id: 69b5e81b767b81ca7e865607, topology_type: Unknown, servers: [<ServerDescription ('database.internal', 27017) server_type: Unknown, rtt: None, error=AutoReconnect('database.internal:27017: [Errno -2] Name or service not known (configured timeouts: socketTimeoutMS: 20000.0ms, connectTimeoutMS: 20000.0ms)')>]>
+2026-03-14 15:59:36,302 DEBUG Starting the Kibble service
+2026-03-14 16:00:06,644 CRITICAL Unable to create the devices and device_types collection: database.internal:27017: [Errno -2] Name or service not known (configured timeouts: socketTimeoutMS: 20000.0ms, connectTimeoutMS: 20000.0ms), Timeout: 30s, Topology Description: <TopologyDescription id: 69b5e81b767b81ca7e865607, topology_type: Unknown, servers: [<ServerDescription ('database.internal', 27017) server_type: Unknown, rtt: None, error=AutoReconnect('database.internal:27017: [Errno -2] Name or service not known (configured timeouts: socketTimeoutMS: 20000.0ms, connectTimeoutMS: 20000.0ms)')>]>
+2026-03-14 16:00:06,644 INFO Adding devices from files
+2026-03-14 16:00:06,644 INFO Adding device from file: 69a65a1ba9713e22895f8116
+2026-03-14 16:00:06,645 INFO Adding device from file: 69a65a1ba9713e22895f8117
+2026-03-14 16:00:06,645 INFO Adding device from file: 69a65a1ba9713e22895f8118
+2026-03-14 16:00:06,645 INFO Adding device from file: 69a65a1ba9713e22895f8119
+2026-03-14 16:00:06,645 INFO Adding device from file: 69a65a1ba9713e22895f811a
+2026-03-14 16:00:06,645 INFO Adding device from file: 69a65a1ba9713e22895f811b
+2026-03-14 16:00:06,645 INFO Adding device from file: 69a65a1ba9713e22895f811c
+2026-03-14 16:00:06,645 INFO Adding device from file: 69a65a2e2b7786f2fc2e37b8
+2026-03-14 16:00:36,970 CRITICAL Unable to ensure device type for ('device 1', ['ICMP']): database.internal:27017: [Errno -2] Name or service not known (configured timeouts: socketTimeoutMS: 20000.0ms, connectTimeoutMS: 20000.0ms), Timeout: 30s, Topology Description: <TopologyDescription id: 69b5e81b767b81ca7e865607, topology_type: Unknown, servers: [<ServerDescription ('database.internal', 27017) server_type: Unknown, rtt: None, error=AutoReconnect('database.internal:27017: [Errno -2] Name or service not known (configured timeouts: socketTimeoutMS: 20000.0ms, connectTimeoutMS: 20000.0ms)')>]>
+2026-03-14 16:00:36,970 DEBUG Getting devices from database
+2026-03-14 16:01:07,405 CRITICAL Failed to get latest devices from MongoDB: database.internal:27017: [Errno -2] Name or service not known (configured timeouts: socketTimeoutMS: 20000.0ms, connectTimeoutMS: 20000.0ms), Timeout: 30s, Topology Description: <TopologyDescription id: 69b5e81b767b81ca7e865607, topology_type: Unknown, servers: [<ServerDescription ('database.internal', 27017) server_type: Unknown, rtt: None, error=AutoReconnect('database.internal:27017: [Errno -2] Name or service not known (configured timeouts: socketTimeoutMS: 20000.0ms, connectTimeoutMS: 20000.0ms)')>]>
+2026-03-14 16:01:07,406 DEBUG Starting a network scan
+2026-03-14 16:01:07,464 CRITICAL Could not resolve the hostname for doesnotexist.internal
+2026-03-14 16:01:07,485 CRITICAL Could not resolve the hostname for simulator-secondary-1
+2026-03-14 16:01:07,525 CRITICAL Could not resolve the hostname for simulator-secondary-2
+2026-03-14 16:01:07,577 CRITICAL Could not resolve the hostname for simulator-secondary-3
+2026-03-14 16:01:07,663 CRITICAL Could not resolve the hostname for simulator-secondary-4
+2026-03-14 16:01:07,685 CRITICAL Could not resolve the hostname for simulator-secondary-5
+2026-03-14 16:01:12,781 DEBUG Finished scanning network
+2026-03-14 16:01:12,781 DEBUG Starting a network scan
+2026-03-14 16:01:12,891 CRITICAL Could not resolve the hostname for doesnotexist.internal
+2026-03-14 16:01:12,995 CRITICAL Could not resolve the hostname for simulator-secondary-1
+2026-03-14 16:01:13,016 CRITICAL Could not resolve the hostname for simulator-secondary-2
+2026-03-14 16:01:13,131 CRITICAL Could not resolve the hostname for simulator-secondary-3
+2026-03-14 16:01:13,213 CRITICAL Could not resolve the hostname for simulator-secondary-4
+2026-03-14 16:01:13,272 CRITICAL Could not resolve the hostname for simulator-secondary-5
+2026-03-14 16:01:18,325 DEBUG Finished scanning network
+2026-03-14 16:01:18,325 DEBUG Sending logs
+2026-03-14 16:01:18,325 DEBUG Sending logs
+2026-03-14 16:01:18,326 DEBUG Sending logs
+2026-03-14 16:01:18,326 DEBUG Sending logs
+2026-03-14 16:01:18,326 DEBUG Sending logs
+2026-03-14 16:01:18,326 DEBUG Sending logs
+2026-03-14 16:01:18,326 DEBUG Sending logs
+2026-03-14 16:01:18,327 DEBUG Sending logs
+2026-03-14 16:01:18,327 INFO Sending alert(s)
+2026-03-14 16:01:18,327 INFO Sending alert(s)
+2026-03-14 16:01:18,328 INFO Sending alert(s)
+2026-03-14 16:01:18,328 INFO Sending alert(s)
+2026-03-14 16:01:18,328 INFO Sending alert(s)
+2026-03-14 16:01:18,328 INFO Sending alert(s)
+2026-03-14 16:01:18,329 INFO Sending alert(s)
+2026-03-14 16:01:18,329 DEBUG Getting devices from database
+2026-03-14 16:01:18,374 CRITICAL Failed to log to MongoDB: 'NoneType' object has no attribute 'insert_many'
+2026-03-14 16:01:19,375 CRITICAL Failed to log to MongoDB: 'NoneType' object has no attribute 'insert_many'
+2026-03-14 16:01:20,375 CRITICAL Failed to log to MongoDB: 'NoneType' object has no attribute 'insert_many'
+2026-03-14 16:01:21,376 CRITICAL Failed to log to MongoDB: 'NoneType' object has no attribute 'insert_many'
+2026-03-14 16:01:22,377 CRITICAL Failed to log to MongoDB: 'NoneType' object has no attribute 'insert_many'
+2026-03-14 16:01:23,377 CRITICAL Failed to log to MongoDB: 'NoneType' object has no attribute 'insert_many'
+2026-03-14 16:01:24,378 CRITICAL Failed to log to MongoDB: 'NoneType' object has no attribute 'insert_many'
+2026-03-14 16:01:25,379 CRITICAL Failed to log to MongoDB: 'NoneType' object has no attribute 'insert_many'
+2026-03-14 16:01:26,380 CRITICAL Failed to log to MongoDB: 'NoneType' object has no attribute 'insert_many'
+2026-03-14 16:01:27,380 CRITICAL Failed to log to MongoDB: 'NoneType' object has no attribute 'insert_many'
+2026-03-14 16:01:28,381 CRITICAL Failed to log to MongoDB: 'NoneType' object has no attribute 'insert_many'
+2026-03-14 16:01:29,382 CRITICAL Failed to log to MongoDB: 'NoneType' object has no attribute 'insert_many'
+2026-03-14 16:01:30,383 CRITICAL Failed to log to MongoDB: 'NoneType' object has no attribute 'insert_many'
+2026-03-14 16:01:31,384 CRITICAL Failed to log to MongoDB: 'NoneType' object has no attribute 'insert_many'
+2026-03-14 16:01:32,385 CRITICAL Failed to log to MongoDB: 'NoneType' object has no attribute 'insert_many'
+2026-03-14 16:01:33,385 CRITICAL Failed to log to MongoDB: 'NoneType' object has no attribute 'insert_many'
+2026-03-14 16:01:34,386 CRITICAL Failed to log to MongoDB: 'NoneType' object has no attribute 'insert_many'
+2026-03-14 16:01:35,386 CRITICAL Failed to log to MongoDB: 'NoneType' object has no attribute 'insert_many'
+2026-03-14 16:01:36,387 CRITICAL Failed to log to MongoDB: 'NoneType' object has no attribute 'insert_many'
+2026-03-14 16:01:37,388 CRITICAL Failed to log to MongoDB: 'NoneType' object has no attribute 'insert_many'
+2026-03-14 16:01:38,389 CRITICAL Failed to log to MongoDB: 'NoneType' object has no attribute 'insert_many'
+2026-03-14 16:01:39,389 CRITICAL Failed to log to MongoDB: 'NoneType' object has no attribute 'insert_many'
+2026-03-14 16:01:40,390 CRITICAL Failed to log to MongoDB: 'NoneType' object has no attribute 'insert_many'
+2026-03-14 16:01:41,391 CRITICAL Failed to log to MongoDB: 'NoneType' object has no attribute 'insert_many'
+2026-03-14 16:01:42,391 CRITICAL Failed to log to MongoDB: 'NoneType' object has no attribute 'insert_many'
+2026-03-14 16:01:43,392 CRITICAL Failed to log to MongoDB: 'NoneType' object has no attribute 'insert_many'
+2026-03-14 16:01:44,393 CRITICAL Failed to log to MongoDB: 'NoneType' object has no attribute 'insert_many'
+2026-03-14 16:01:45,394 CRITICAL Failed to log to MongoDB: 'NoneType' object has no attribute 'insert_many'
+2026-03-14 16:01:46,395 CRITICAL Failed to log to MongoDB: 'NoneType' object has no attribute 'insert_many'
+2026-03-14 16:01:47,395 CRITICAL Failed to log to MongoDB: 'NoneType' object has no attribute 'insert_many'
+2026-03-14 16:01:48,396 CRITICAL Failed to log to MongoDB: 'NoneType' object has no attribute 'insert_many'
+2026-03-14 16:01:48,701 CRITICAL Failed to get latest devices from MongoDB: database.internal:27017: [Errno -2] Name or service not known (configured timeouts: socketTimeoutMS: 20000.0ms, connectTimeoutMS: 20000.0ms), Timeout: 30s, Topology Description: <TopologyDescription id: 69b5e81b767b81ca7e865607, topology_type: Unknown, servers: [<ServerDescription ('database.internal', 27017) server_type: Unknown, rtt: None, error=AutoReconnect('database.internal:27017: [Errno -2] Name or service not known (configured timeouts: socketTimeoutMS: 20000.0ms, connectTimeoutMS: 20000.0ms)')>]>
+2026-03-14 16:01:48,701 DEBUG Waiting 4.5 seconds until scanning again
+2026-03-14 16:01:49,397 CRITICAL Failed to log to MongoDB: 'NoneType' object has no attribute 'insert_many'
+2026-03-14 16:01:50,398 CRITICAL Failed to log to MongoDB: 'NoneType' object has no attribute 'insert_many'
+2026-03-14 16:01:51,399 CRITICAL Failed to log to MongoDB: 'NoneType' object has no attribute 'insert_many'
+2026-03-14 16:01:52,400 CRITICAL Failed to log to MongoDB: 'NoneType' object has no attribute 'insert_many'
+2026-03-14 16:01:53,158 DEBUG Starting a network scan
+2026-03-14 16:01:53,249 CRITICAL Could not resolve the hostname for doesnotexist.internal
+2026-03-14 16:01:53,269 CRITICAL Could not resolve the hostname for simulator-secondary-1
+2026-03-14 16:01:53,295 CRITICAL Could not resolve the hostname for simulator-secondary-2
+2026-03-14 16:01:53,318 CRITICAL Could not resolve the hostname for simulator-secondary-3
+2026-03-14 16:01:53,342 CRITICAL Could not resolve the hostname for simulator-secondary-4
+2026-03-14 16:01:53,392 CRITICAL Could not resolve the hostname for simulator-secondary-5
+2026-03-14 16:01:53,400 CRITICAL Failed to log to MongoDB: 'NoneType' object has no attribute 'insert_many'
+2026-03-14 16:01:54,401 CRITICAL Failed to log to MongoDB: 'NoneType' object has no attribute 'insert_many'
+2026-03-14 16:01:55,402 CRITICAL Failed to log to MongoDB: 'NoneType' object has no attribute 'insert_many'
+2026-03-14 16:01:56,402 CRITICAL Failed to log to MongoDB: 'NoneType' object has no attribute 'insert_many'
+2026-03-14 16:01:57,403 CRITICAL Failed to log to MongoDB: 'NoneType' object has no attribute 'insert_many'
+2026-03-14 16:01:58,404 CRITICAL Failed to log to MongoDB: 'NoneType' object has no attribute 'insert_many'
+2026-03-14 16:01:58,444 DEBUG Finished scanning network
+2026-03-14 16:01:58,445 DEBUG Sending logs
+2026-03-14 16:01:58,445 DEBUG Sending logs
+2026-03-14 16:01:58,445 DEBUG Sending logs
+2026-03-14 16:01:58,445 DEBUG Sending logs
+2026-03-14 16:01:58,445 DEBUG Sending logs
+2026-03-14 16:01:58,446 DEBUG Sending logs
+2026-03-14 16:01:58,446 DEBUG Sending logs
+2026-03-14 16:01:58,446 DEBUG Sending logs
+2026-03-14 16:01:58,446 DEBUG Getting devices from database
+2026-03-14 16:01:59,405 CRITICAL Failed to log to MongoDB: 'NoneType' object has no attribute 'insert_many'
+2026-03-14 16:02:00,405 CRITICAL Failed to log to MongoDB: 'NoneType' object has no attribute 'insert_many'
+2026-03-14 16:02:01,406 CRITICAL Failed to log to MongoDB: 'NoneType' object has no attribute 'insert_many'
+2026-03-14 16:02:02,407 CRITICAL Failed to log to MongoDB: 'NoneType' object has no attribute 'insert_many'
+2026-03-14 16:02:03,408 CRITICAL Failed to log to MongoDB: 'NoneType' object has no attribute 'insert_many'
+2026-03-14 16:02:04,408 CRITICAL Failed to log to MongoDB: 'NoneType' object has no attribute 'insert_many'
+2026-03-14 16:02:05,409 CRITICAL Failed to log to MongoDB: 'NoneType' object has no attribute 'insert_many'
+2026-03-14 16:02:06,410 CRITICAL Failed to log to MongoDB: 'NoneType' object has no attribute 'insert_many'
+2026-03-14 16:02:07,411 CRITICAL Failed to log to MongoDB: 'NoneType' object has no attribute 'insert_many'
+2026-03-14 16:02:08,412 CRITICAL Failed to log to MongoDB: 'NoneType' object has no attribute 'insert_many'
+2026-03-14 16:02:09,413 CRITICAL Failed to log to MongoDB: 'NoneType' object has no attribute 'insert_many'
+2026-03-14 16:02:10,414 CRITICAL Failed to log to MongoDB: 'NoneType' object has no attribute 'insert_many'
+2026-03-14 16:02:11,414 CRITICAL Failed to log to MongoDB: 'NoneType' object has no attribute 'insert_many'
+2026-03-14 16:02:12,415 CRITICAL Failed to log to MongoDB: 'NoneType' object has no attribute 'insert_many'
+2026-03-14 16:02:13,416 CRITICAL Failed to log to MongoDB: 'NoneType' object has no attribute 'insert_many'
+2026-03-14 16:02:14,417 CRITICAL Failed to log to MongoDB: 'NoneType' object has no attribute 'insert_many'
+2026-03-14 16:02:15,417 CRITICAL Failed to log to MongoDB: 'NoneType' object has no attribute 'insert_many'
+2026-03-14 16:02:16,418 CRITICAL Failed to log to MongoDB: 'NoneType' object has no attribute 'insert_many'
+2026-03-14 16:02:16,800 DEBUG user ended (KeyboardInterrupt)
+2026-03-14 16:02:17,008 CRITICAL Failed to log to MongoDB: 'NoneType' object has no attribute 'insert_many'
+2026-03-14 16:03:53,438 CRITICAL Unable to connect to MongoDB: database.internal:27017: [Errno -2] Name or service not known (configured timeouts: socketTimeoutMS: 20000.0ms, connectTimeoutMS: 20000.0ms), Timeout: 30s, Topology Description: <TopologyDescription id: 69b5e93b1925119e990018e3, topology_type: Unknown, servers: [<ServerDescription ('database.internal', 27017) server_type: Unknown, rtt: None, error=AutoReconnect('database.internal:27017: [Errno -2] Name or service not known (configured timeouts: socketTimeoutMS: 20000.0ms, connectTimeoutMS: 20000.0ms)')>]>.  Events will only be maintained locally and the fallback list of devices will be used.
+2026-03-14 16:04:23,601 CRITICAL Unable to connect to MongoDB: database.internal:27017: [Errno -2] Name or service not known (configured timeouts: socketTimeoutMS: 20000.0ms, connectTimeoutMS: 20000.0ms), Timeout: 30s, Topology Description: <TopologyDescription id: 69b5e93b1925119e990018e3, topology_type: Unknown, servers: [<ServerDescription ('database.internal', 27017) server_type: Unknown, rtt: None, error=AutoReconnect('database.internal:27017: [Errno -2] Name or service not known (configured timeouts: socketTimeoutMS: 20000.0ms, connectTimeoutMS: 20000.0ms)')>]>
+2026-03-14 16:04:23,602 DEBUG Starting the Kibble service
+2026-03-14 16:04:53,889 CRITICAL Unable to create the devices and device_types collection: database.internal:27017: [Errno -2] Name or service not known (configured timeouts: socketTimeoutMS: 20000.0ms, connectTimeoutMS: 20000.0ms), Timeout: 30s, Topology Description: <TopologyDescription id: 69b5e93b1925119e990018e3, topology_type: Unknown, servers: [<ServerDescription ('database.internal', 27017) server_type: Unknown, rtt: None, error=AutoReconnect('database.internal:27017: [Errno -2] Name or service not known (configured timeouts: socketTimeoutMS: 20000.0ms, connectTimeoutMS: 20000.0ms)')>]>
+2026-03-14 16:04:53,889 INFO Adding devices from files
+2026-03-14 16:04:53,890 INFO Adding device from file: 69a65a1ba9713e22895f8116
+2026-03-14 16:04:53,890 INFO Adding device from file: 69a65a1ba9713e22895f8117
+2026-03-14 16:04:53,890 INFO Adding device from file: 69a65a1ba9713e22895f8118
+2026-03-14 16:04:53,890 INFO Adding device from file: 69a65a1ba9713e22895f8119
+2026-03-14 16:04:53,890 INFO Adding device from file: 69a65a1ba9713e22895f811a
+2026-03-14 16:04:53,891 INFO Adding device from file: 69a65a1ba9713e22895f811b
+2026-03-14 16:04:53,891 INFO Adding device from file: 69a65a1ba9713e22895f811c
+2026-03-14 16:04:53,891 INFO Adding device from file: 69a65a2e2b7786f2fc2e37b8
+2026-03-14 16:04:54,960 CRITICAL Failed to log to MongoDB: database.internal:27017: [Errno -2] Name or service not known (configured timeouts: socketTimeoutMS: 20000.0ms, connectTimeoutMS: 20000.0ms), Timeout: 30s, Topology Description: <TopologyDescription id: 69b5e93b1925119e990018e3, topology_type: Unknown, servers: [<ServerDescription ('database.internal', 27017) server_type: Unknown, rtt: None, error=AutoReconnect('database.internal:27017: [Errno -2] Name or service not known (configured timeouts: socketTimeoutMS: 20000.0ms, connectTimeoutMS: 20000.0ms)')>]>
+2026-03-14 16:05:24,298 CRITICAL Unable to ensure device type for ('device 1', ['ICMP']): database.internal:27017: [Errno -2] Name or service not known (configured timeouts: socketTimeoutMS: 20000.0ms, connectTimeoutMS: 20000.0ms), Timeout: 30s, Topology Description: <TopologyDescription id: 69b5e93b1925119e990018e3, topology_type: Unknown, servers: [<ServerDescription ('database.internal', 27017) server_type: Unknown, rtt: None, error=AutoReconnect('database.internal:27017: [Errno -2] Name or service not known (configured timeouts: socketTimeoutMS: 20000.0ms, connectTimeoutMS: 20000.0ms)')>]>
+2026-03-14 16:05:24,299 DEBUG Getting devices from database
+2026-03-14 16:05:26,444 CRITICAL Failed to log to MongoDB: database.internal:27017: [Errno -2] Name or service not known (configured timeouts: socketTimeoutMS: 20000.0ms, connectTimeoutMS: 20000.0ms), Timeout: 30s, Topology Description: <TopologyDescription id: 69b5e93b1925119e990018e3, topology_type: Unknown, servers: [<ServerDescription ('database.internal', 27017) server_type: Unknown, rtt: None, error=AutoReconnect('database.internal:27017: [Errno -2] Name or service not known (configured timeouts: socketTimeoutMS: 20000.0ms, connectTimeoutMS: 20000.0ms)')>]>
+2026-03-14 16:05:54,540 CRITICAL Failed to get latest devices from MongoDB: database.internal:27017: [Errno -2] Name or service not known (configured timeouts: socketTimeoutMS: 20000.0ms, connectTimeoutMS: 20000.0ms), Timeout: 30s, Topology Description: <TopologyDescription id: 69b5e93b1925119e990018e3, topology_type: Unknown, servers: [<ServerDescription ('database.internal', 27017) server_type: Unknown, rtt: None, error=AutoReconnect('database.internal:27017: [Errno -2] Name or service not known (configured timeouts: socketTimeoutMS: 20000.0ms, connectTimeoutMS: 20000.0ms)')>]>
+2026-03-14 16:05:54,541 DEBUG Starting a network scan
+2026-03-14 16:05:55,840 CRITICAL Could not resolve the hostname for doesnotexist.internal
+2026-03-14 16:05:55,860 CRITICAL Could not resolve the hostname for simulator-secondary-1
+2026-03-14 16:05:55,910 CRITICAL Could not resolve the hostname for simulator-secondary-2
+2026-03-14 16:05:55,927 CRITICAL Could not resolve the hostname for simulator-secondary-3
+2026-03-14 16:05:57,240 CRITICAL Could not resolve the hostname for simulator-secondary-4
+2026-03-14 16:05:57,263 CRITICAL Could not resolve the hostname for simulator-secondary-5
+2026-03-14 16:05:57,769 CRITICAL Failed to log to MongoDB: database.internal:27017: [Errno -2] Name or service not known (configured timeouts: socketTimeoutMS: 20000.0ms, connectTimeoutMS: 20000.0ms), Timeout: 30s, Topology Description: <TopologyDescription id: 69b5e93b1925119e990018e3, topology_type: Unknown, servers: [<ServerDescription ('database.internal', 27017) server_type: Unknown, rtt: None, error=AutoReconnect('database.internal:27017: [Errno -2] Name or service not known (configured timeouts: socketTimeoutMS: 20000.0ms, connectTimeoutMS: 20000.0ms)')>]>
+2026-03-14 16:06:02,361 DEBUG Finished scanning network
+2026-03-14 16:06:02,362 DEBUG Starting a network scan
+2026-03-14 16:06:02,446 CRITICAL Could not resolve the hostname for doesnotexist.internal
+2026-03-14 16:06:02,499 CRITICAL Could not resolve the hostname for simulator-secondary-1
+2026-03-14 16:06:02,520 CRITICAL Could not resolve the hostname for simulator-secondary-2
+2026-03-14 16:06:02,544 CRITICAL Could not resolve the hostname for simulator-secondary-3
+2026-03-14 16:06:02,569 CRITICAL Could not resolve the hostname for simulator-secondary-4
+2026-03-14 16:06:02,586 CRITICAL Could not resolve the hostname for simulator-secondary-5
+2026-03-14 16:06:07,657 DEBUG Finished scanning network
+2026-03-14 16:06:07,657 DEBUG Sending logs
+2026-03-14 16:06:07,658 DEBUG Sending logs
+2026-03-14 16:06:07,658 DEBUG Sending logs
+2026-03-14 16:06:07,659 DEBUG Sending logs
+2026-03-14 16:06:07,659 DEBUG Sending logs
+2026-03-14 16:06:07,659 DEBUG Sending logs
+2026-03-14 16:06:07,659 DEBUG Sending logs
+2026-03-14 16:06:07,660 DEBUG Sending logs
+2026-03-14 16:06:07,660 INFO Sending alert(s)
+2026-03-14 16:06:07,660 INFO Sending alert(s)
+2026-03-14 16:06:07,661 INFO Sending alert(s)
+2026-03-14 16:06:07,661 INFO Sending alert(s)
+2026-03-14 16:06:07,661 INFO Sending alert(s)
+2026-03-14 16:06:07,661 INFO Sending alert(s)
+2026-03-14 16:06:07,661 INFO Sending alert(s)
+2026-03-14 16:06:07,662 DEBUG Getting devices from database
+2026-03-14 16:06:29,111 CRITICAL Failed to log to MongoDB: database.internal:27017: [Errno -2] Name or service not known (configured timeouts: socketTimeoutMS: 20000.0ms, connectTimeoutMS: 20000.0ms), Timeout: 30s, Topology Description: <TopologyDescription id: 69b5e93b1925119e990018e3, topology_type: Unknown, servers: [<ServerDescription ('database.internal', 27017) server_type: Unknown, rtt: None, error=AutoReconnect('database.internal:27017: [Errno -2] Name or service not known (configured timeouts: socketTimeoutMS: 20000.0ms, connectTimeoutMS: 20000.0ms)')>]>
+2026-03-14 16:06:37,803 CRITICAL Failed to get latest devices from MongoDB: database.internal:27017: [Errno -2] Name or service not known (configured timeouts: socketTimeoutMS: 20000.0ms, connectTimeoutMS: 20000.0ms), Timeout: 30s, Topology Description: <TopologyDescription id: 69b5e93b1925119e990018e3, topology_type: Unknown, servers: [<ServerDescription ('database.internal', 27017) server_type: Unknown, rtt: None, error=AutoReconnect('database.internal:27017: [Errno -2] Name or service not known (configured timeouts: socketTimeoutMS: 20000.0ms, connectTimeoutMS: 20000.0ms)')>]>
+2026-03-14 16:06:37,804 DEBUG Waiting 4.7 seconds until scanning again
+2026-03-14 16:06:42,508 DEBUG Starting a network scan
+2026-03-14 16:06:42,532 CRITICAL Could not resolve the hostname for doesnotexist.internal
+2026-03-14 16:06:42,556 CRITICAL Could not resolve the hostname for simulator-secondary-1
+2026-03-14 16:06:42,579 CRITICAL Could not resolve the hostname for simulator-secondary-2
+2026-03-14 16:06:43,865 CRITICAL Could not resolve the hostname for simulator-secondary-3
+2026-03-14 16:06:43,883 CRITICAL Could not resolve the hostname for simulator-secondary-4
+2026-03-14 16:06:43,927 CRITICAL Could not resolve the hostname for simulator-secondary-5
+2026-03-14 16:06:48,981 DEBUG Finished scanning network
+2026-03-14 16:06:48,982 DEBUG Sending logs
+2026-03-14 16:06:48,982 DEBUG Sending logs
+2026-03-14 16:06:48,982 DEBUG Sending logs
+2026-03-14 16:06:48,982 DEBUG Sending logs
+2026-03-14 16:06:48,983 DEBUG Sending logs
+2026-03-14 16:06:48,983 DEBUG Sending logs
+2026-03-14 16:06:48,983 DEBUG Sending logs
+2026-03-14 16:06:48,983 DEBUG Sending logs
+2026-03-14 16:06:48,984 DEBUG Getting devices from database
+2026-03-14 16:07:00,180 CRITICAL Failed to log to MongoDB: database.internal:27017: [Errno -2] Name or service not known (configured timeouts: socketTimeoutMS: 20000.0ms, connectTimeoutMS: 20000.0ms), Timeout: 30s, Topology Description: <TopologyDescription id: 69b5e93b1925119e990018e3, topology_type: Unknown, servers: [<ServerDescription ('database.internal', 27017) server_type: Unknown, rtt: None, error=AutoReconnect('database.internal:27017: [Errno -2] Name or service not known (configured timeouts: socketTimeoutMS: 20000.0ms, connectTimeoutMS: 20000.0ms)')>]>
+2026-03-14 16:07:19,233 CRITICAL Failed to get latest devices from MongoDB: database.internal:27017: [Errno -2] Name or service not known (configured timeouts: socketTimeoutMS: 20000.0ms, connectTimeoutMS: 20000.0ms), Timeout: 30s, Topology Description: <TopologyDescription id: 69b5e93b1925119e990018e3, topology_type: Unknown, servers: [<ServerDescription ('database.internal', 27017) server_type: Unknown, rtt: None, error=AutoReconnect('database.internal:27017: [Errno -2] Name or service not known (configured timeouts: socketTimeoutMS: 20000.0ms, connectTimeoutMS: 20000.0ms)')>]>
+2026-03-14 16:07:19,234 DEBUG Waiting 3.5 seconds until scanning again
+2026-03-14 16:07:21,283 DEBUG user ended (KeyboardInterrupt)
+2026-03-14 16:07:31,539 CRITICAL Failed to log to MongoDB: database.internal:27017: [Errno -2] Name or service not known (configured timeouts: socketTimeoutMS: 20000.0ms, connectTimeoutMS: 20000.0ms), Timeout: 30s, Topology Description: <TopologyDescription id: 69b5e93b1925119e990018e3, topology_type: Unknown, servers: [<ServerDescription ('database.internal', 27017) server_type: Unknown, rtt: None, error=AutoReconnect('database.internal:27017: [Errno -2] Name or service not known (configured timeouts: socketTimeoutMS: 20000.0ms, connectTimeoutMS: 20000.0ms)')>]>
