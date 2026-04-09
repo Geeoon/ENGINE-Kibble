@@ -13,7 +13,7 @@ DEVICES_COLLECTION = "devices"
 DEVICE_TYPES_COLLECTION = "device_types"
 
 class DeviceRetriever:
-    def __init__(self, db_name: str='kibble', client: MongoClient=None):
+    def __init__(self, client: MongoClient, db_name: str='kibble'):
         """
         Initializes a device retriever getting devices and device types from MongoDB
         

@@ -1,6 +1,7 @@
 # Main python script
 import logging
 import json
+import time
 
 from pymongo import MongoClient
 
@@ -89,6 +90,7 @@ for id in range(1, 6):
         } }, upsert=True)
 
 tries = 1
+last_fail = 0
 while tries < 25:
     try:
         kibble.run()
@@ -96,4 +98,7 @@ while tries < 25:
         kibble.end("user ended (KeyboardInterrupt)")
         break
     except Exception as e:
+        if (time.time() - last_fail) > 300:  # if it's been more than 5 minutes since the last fail
+            tries = 1  # reset
         maintainance_logger.critical(f"Uncaught exception: {str(e)}.  Attemping to restart the service, try {tries}")
+        tries += 1
