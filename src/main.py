@@ -4,7 +4,10 @@ from Kibble import Kibble
 from Kibble.Alerting import EmailAlert, ScreenAlert
 from Kibble.Logging import MongoHandler
 from Kibble.Monitoring.Active import ICMPMonitor
+from Kibble.Detecting import LatencyDetector
 import logging
+import argparse
+import yaml
 
 screen_alert = ScreenAlert()
 # set up loggers
@@ -51,7 +54,28 @@ screen_alert = ScreenAlert()  # TODO: replace with logger possibly
 email_alert = EmailAlert()
 
 monitor = ICMPMonitor(endpoints=[], timeout=5)
-kibble = Kibble(client=mongo_status_handler.client, monitors=[monitor], alerters=[screen_alert], default_device_type=("device 1", ["ICMP"]))
+
+# latency configuration
+parser = argparse.ArgumentParser()
+parser.add_argument("--low-thresh", type=int)
+parser.add_argument("--medium-thresh", type=int)
+parser.add_argument("--high-thresh", type=int)
+args = parser.parse_args()
+
+config = {}
+try:
+    with open("../kibble.yaml") as f:
+        data = yaml.safe_load(f) or {}
+        config = data.get("latency_thresholds", {})
+except FileNotFoundError:
+    pass
+
+detector = LatencyDetector(
+    low_thresh=args.low_thresh or config.get("low_thresh", 500),
+    medium_thresh=args.medium_thresh or config.get("medium_thresh", 1000),
+    high_thresh=args.high_thresh or config.get("high_thresh", 2000),
+)
+kibble = Kibble(client=mongo_status_handler.client, monitors=[monitor], alerters=[screen_alert], detector=detector, default_device_type=("device 1", ["ICMP"]))
 
 # testing only: add devices to db, if they don't exist, for testing.
 mongo_status_handler.db['devices'].update_one({"ip": "127.0.0.1"}, { "$setOnInsert": {
