@@ -32,6 +32,7 @@ services:
       dockerfile: Dockerfile
     cap_add:
       - NET_ADMIN  # for traffic control
+    stop_grace_period: 1s  # gracefull shutdown doesn't matter
   database:
     image: mongodb/mongodb-community-server:8.2.3-ubi8
     environment:

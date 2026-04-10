@@ -59,7 +59,7 @@ class SCPIMonitor(StatusMonitor):
         scpi_socket.settimeout(self._timeout)
         try:
             scpi_socket.connect((target, self.port))
-            scpi_socket.send("*IDN?")
+            scpi_socket.send(b"*IDN?\n")
             return str(scpi_socket.recv(1024))
         except:
             return None

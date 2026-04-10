@@ -13,8 +13,8 @@ EVENT_TYPE_ENDPOINT_UP = "endpoint_up"
 EVENT_TYPE_ENDPOINT_DOWN = "endpoint_down"
 
 
-def ICMP(status_data: dict, severity: LogLevel = LogLevel.CRITICAL, device_id: Optional[ObjectId] = None) -> dict:
-    """Builds an ICMP endpoint-status event document for logging.
+def LatencyStructure(status_data: dict, severity: LogLevel = LogLevel.CRITICAL, device_id: Optional[ObjectId] = None) -> dict:
+    """Builds an LatencyStructure endpoint-status event document for logging latency based telemetry.
 
     Args:
         status_data: Dict with "alive", "latency", and "last_updated" status.
