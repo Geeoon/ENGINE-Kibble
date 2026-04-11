@@ -2,19 +2,21 @@
 Overall system implementation
 """
 
+import asyncio
+import datetime
 import logging
 import time
-import asyncio
 from typing import Optional
 
+from bson import ObjectId
 from pymongo import MongoClient
 
 from Kibble.Logging import LogLevel, ICMP
-from Kibble.Logging.EventSchema import device_info
+from Kibble.Logging.EventSchema import device_configuration
 from Kibble.Monitoring import StatusMonitor
 from Kibble.Alerting import Alert
 from Kibble.Detecting import Detector, LatencyDetector
-from Kibble.Retrieval import DeviceRetriever
+from Kibble.Retrieval import DEVICE_CONFIGURATIONS_COLLECTION, DeviceRetriever
 
 
 class Kibble:
@@ -81,7 +83,6 @@ class Kibble:
         """
         try:
             asyncio.run(self._rescan())
-            self._last_device_log_time = time.time()
 
             while True:
                 start_time = time.time()
@@ -132,7 +133,7 @@ class Kibble:
                 if not this_status:
                     continue
                 level = self.detector.get_level(key, this_status)
-                logs.append(ICMP(this_status, level, device_id=key))
+                logs.append(ICMP(this_status, level, device_id=ObjectId(key)))
                 levels.append(level)
 
         return logs, levels
@@ -146,57 +147,162 @@ class Kibble:
             # e.g. data/levels length mismatch; skip this logger and continue
             pass
 
+    @staticmethod
+    def _device_configuration_fingerprint(cfg: dict) -> tuple[str, ...]:
+        """Fields that define a distinct device_configuration snapshot (excludes schema_version, applied_date, _id)."""
+        return (
+            str(cfg.get("ip_address") or ""),
+            str(cfg.get("hostname") or ""),
+            str(cfg.get("mac_address") or ""),
+            str(cfg.get("subnet_mask") or ""),
+            str(cfg.get("gateway") or ""),
+            str(cfg.get("default_gateway") or ""),
+        )
+
+    def _record_device_configuration_if_changed(self, id_str: str, new_device: dict) -> None:
+        """Insert device_configuration when in-memory device row changed and DB latest row differs.
+
+        Subnet mask and gateways are not sourced yet; stored as empty strings until a probe exists.
+        """
+        # TODO: populate from SNMP/agent when available
+        subnet_mask = ""
+        gateway = ""
+        default_gateway = ""
+
+        ip_address = str(new_device.get("ip") or "")
+        hostname = str(new_device.get("hostname") or "")
+        mac_address = str(new_device.get("mac") or "")
+
+        oid = ObjectId(id_str)
+        proposed = (
+            ip_address,
+            hostname,
+            mac_address,
+            subnet_mask,
+            gateway,
+            default_gateway,
+        )
+
+        latest = self.device_retriever.get_latest_device_configuration(oid)
+        if latest is not None and self._device_configuration_fingerprint(latest) == proposed:
+            return
+
+        applied_date = datetime.datetime.now(datetime.timezone.utc)
+        doc = device_configuration(
+            oid,
+            ip_address,
+            subnet_mask,
+            gateway,
+            default_gateway,
+            hostname,
+            mac_address,
+            applied_date,
+        )
+        self.device_retriever.insert_device_configuration(doc)
+
     def _get_devices(self):
         self.maintainance_logger.debug("Getting devices from database")
 
         if self.devices_collection is None:
             raise ValueError("devices_collection must be provided")
 
-        results = self.devices_collection.aggregate([
-            # join devices and device type over _id
-            {
-                "$lookup": {
-                    "from": "device_types",
-                    "localField": "device_type_id",
-                    "foreignField": "_id",
-                    "as": "device_type"
-                }
-            },
-            {
-                "$project": {
-                    "_id": 1,
-                    "device_ip": 1,
-                    "hostname": 1,
-                    "mac_address": 1,
-                    # "device_type.name": 1,  # is this useful to us?
-                    "device_type.protocols_supported": 1
-                }
-            }
-        ])
+        # Network fields come only from latest device_configuration; devices hold device_type_id + asset_tag.
+        results = self.devices_collection.aggregate(
+            [
+                {
+                    "$lookup": {
+                        "from": "device_types",
+                        "localField": "device_type_id",
+                        "foreignField": "_id",
+                        "as": "device_type",
+                    }
+                },
+                {
+                    "$lookup": {
+                        "from": DEVICE_CONFIGURATIONS_COLLECTION,
+                        "let": {"dev_id": "$_id"},
+                        "pipeline": [
+                            {
+                                "$match": {
+                                    "$expr": {"$eq": ["$device_id", "$$dev_id"]},
+                                }
+                            },
+                            {"$sort": {"applied_date": -1}},
+                            {"$limit": 1},
+                        ],
+                        "as": "latest_config",
+                    }
+                },
+                {
+                    "$addFields": {
+                        "_cfg": {"$arrayElemAt": ["$latest_config", 0]},
+                    }
+                },
+                {
+                    "$project": {
+                        "_id": 1,
+                        "asset_tag": 1,
+                        "device_ip": "$_cfg.ip_address",
+                        "hostname": "$_cfg.hostname",
+                        "mac_address": "$_cfg.mac_address",
+                        "device_type.protocols_supported": 1,
+                    }
+                },
+            ]
+        )
 
         # convert results to the dictionary
         for device in results:
             id = str(device['_id'])
-            if id not in self.devices.keys():
-                self.maintainance_logger.info(f"Found new device: {id}")
-                self.devices[id] = {}
-            if not device['device_type']:
+            if not device["device_type"]:
                 self.maintainance_logger.error(f"No corresponding device type found for {id}")
                 continue
 
+            protocols = list(
+                {
+                    proto
+                    for protocol in device.get("device_type", [])
+                    for proto in protocol.get("protocols_supported", [])
+                }
+            )
+
+            if not device.get("device_ip") and not device.get("hostname"):
+                self.maintainance_logger.warning(
+                    f"Device {id} has no device_configuration snapshot (need ip and/or hostname to monitor)"
+                )
+                if id not in self.devices.keys():
+                    self.maintainance_logger.info(f"Found new device: {id}")
+                self.devices[id] = {
+                    "ip": None,
+                    "hostname": None,
+                    "mac": None,
+                    "protocols": protocols,
+                }
+                continue
+
+            if id not in self.devices.keys():
+                self.maintainance_logger.info(f"Found new device: {id}")
+                self.devices[id] = {}
+
             new_device = {
-                'ip': device.get('device_ip', None),
-                'hostname': device.get('hostname', None),
-                'mac': device.get('mac_address', None),
-                'protocols': list({proto for protocol in device.get('device_type', []) for proto in protocol.get('protocols_supported', [])}),
+                "ip": device.get("device_ip", None),
+                "hostname": device.get("hostname", None),
+                "mac": device.get("mac_address", None),
+                "protocols": protocols,
             }
 
             if self.devices[id] != new_device:
                 self.maintainance_logger.info(f"Updating device information for {id}")
+                self._record_device_configuration_if_changed(id, new_device)
                 self.devices[id] = new_device
-        
+
         for id, device in self.devices.items():
-            for protocol in device['protocols']:
+            if not device.get("ip") and not device.get("hostname"):
+                continue
+            protocols = device.get("protocols")
+            if not protocols:
+                continue
+            for protocol in protocols:
                 found = False
                 for monitor in self.monitors:
                     if protocol == str(monitor):
@@ -204,39 +310,6 @@ class Kibble:
                         found = True
                 if not found:  # no monitor found for this protocol
                     self.maintainance_logger.error(f"{id} attempting to use unsupported protocol {protocol}")
-
-    # deprecated
-    def _log_devices(self):
-        devices: list[dict] = []
-        for monitor in self.monitors:
-            for endpoint_ip, status_data in monitor.get_status().items():
-                if status_data is None:
-                    continue
-                
-                # getting the device type for each endpoint
-                meta = self.device_unique_ids["index"].get(endpoint_ip)
-                dtype_id = (
-                    meta.get("device_type_id") if meta and meta.get("device_type_id") else self.default_device_type_id
-                )
-
-                devices.append(device_info(dtype_id, endpoint_ip, status_data))
-
-        if not devices:
-            return
-
-        for doc in devices:
-            device_ip = doc.get("device_ip")
-            if device_ip is None:
-                continue
-            # no longer using logger.log_device_many, using direct DB writes
-            self.devices_collection.update_one(
-                {"device_ip": device_ip},
-                {"$set": doc},
-                upsert=True,
-            )
-
-        # Refresh caches after upserting devices so the next run can use the updated device info (if any chnages0
-        self._get_devices() 
 
     def _end(self, msg: str=""):
         self.maintainance_logger.debug(msg)

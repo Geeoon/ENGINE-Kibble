@@ -8,6 +8,9 @@ from Kibble.Logging import LogLevel
 # Bump when event shape changes so consumers can branch on version.
 EVENT_SCHEMA_VERSION = 1
 
+# Bump when device_configuration document shape changes (device_configurations collection).
+DEVICE_CONFIGURATION_SCHEMA_VERSION = 1
+
 # Event types for endpoint status (fixed set for queries/dashboards; aligns with observability conventions).
 EVENT_TYPE_ENDPOINT_UP = "endpoint_up"
 EVENT_TYPE_ENDPOINT_DOWN = "endpoint_down"
@@ -17,12 +20,16 @@ def ICMP(status_data: dict, severity: LogLevel = LogLevel.CRITICAL, device_id: O
     """Builds an ICMP endpoint-status event document for logging.
 
     Args:
-        status_data: Dict with "alive", "latency", and "last_updated" status.
+        status_data: Input fields used to build ``status``: optional ``alive`` (default False),
+            ``latency`` (default 0, stored as ``latency_ms``), ``last_updated`` (default: event
+            ``timestamp`` as ISO string, stored as ``last_updated_ms``).
         severity: Log level (default CRITICAL).
         device_id: Required device ObjectId; must not be None.
 
     Returns:
-        Event dict with schema_version, timestamp, event_type, status, severity_level, and device_id.
+        Event dict with ``schema_version``, ``timestamp``, ``event_type`` (``endpoint_up`` or
+        ``endpoint_down`` from ``alive``), ``status`` (``alive``, ``latency_ms``, ``last_updated_ms``),
+        ``severity_level``, and ``device_id``.
 
     Raises:
         ValueError: If device_id is None.
@@ -46,41 +53,89 @@ def ICMP(status_data: dict, severity: LogLevel = LogLevel.CRITICAL, device_id: O
     }
     return doc
 
-def device_info(device_type_id: Optional[ObjectId], endpoint_ip: str, status_data: dict) -> dict:
-    """Builds a device-info document from endpoint IP and status data.
+def device_info(device_type_id: Optional[ObjectId], asset_tag: int) -> dict:
+    """Builds the stable ``devices`` collection document (identity only).
+
+    MongoDB adds ``_id``. Do not store IP/hostname/MAC here—use ``device_configuration`` for that.
 
     Args:
-        device_type_id: Optional device type ObjectId; included in doc if not None.
-        endpoint_ip: The endpoint IP address (stored as device_ip).
-        status_data: Dict with "hostname" and "mac_address" (default to "" if missing).
+        device_type_id: Device type ObjectId; required.
+        asset_tag: Integer asset tag; should be unique per device (sparse unique index recommended).
 
     Returns:
-        Dict with device_ip, hostname, mac_address, and optionally device_type_id.
+        Dict with ``asset_tag`` and ``device_type_id``.
+
+    Raises:
+        ValueError: If device_type_id is None.
     """
     if device_type_id is None:
-        raise ValueError("device_id is required")
+        raise ValueError("device_type_id is required")
     doc: dict = {
-        "device_ip": endpoint_ip,
-        "hostname": status_data.get("hostname", ""),
-        "mac_address": status_data.get("mac_address", ""),
+        "asset_tag": asset_tag,
         "device_type_id": device_type_id,
     }
     return doc
 
 
 
-def device_types(name: str, protocols_supported: list[str]):
+def device_types(name: str, protocols_supported: list[str]) -> dict:
     """Builds a device-type document with name and supported protocols.
 
     Args:
         name: Display name of the device type.
-        protocols_supported: List of protocol identifiers (e.g. "ICMP"); copied into the doc.
+        protocols_supported: Protocol identifiers (e.g. ``"ICMP"``); shallow-copied into the returned dict.
 
     Returns:
-        Dict with "name" and "protocols_supported".
+        Dict with keys ``name`` and ``protocols_supported``.
     """
     return {
         "name": name,
         "protocols_supported": list(protocols_supported),
     }
 
+def device_configuration(
+    device_id: Optional[ObjectId],
+    ip_address: str,
+    subnet_mask: str,
+    gateway: str,
+    default_gateway: str,
+    hostname: str,
+    mac_address: str,
+    applied_date: datetime.datetime,
+) -> dict:
+    """Builds a device-configuration document for fields that change over time.
+
+    Use this for mutable network and host identity (IP, routing, hostname, MAC)
+    separate from stable device metadata (e.g. ``device_info``).
+
+    Args:
+        device_id: Device ObjectId; required.
+        ip_address: Current IPv4/IPv6 address.
+        subnet_mask: Subnet mask for the interface.
+        gateway: Gateway for the subnet/route.
+        default_gateway: System default gateway.
+        hostname: Resolved or configured hostname.
+        mac_address: Interface MAC address.
+        applied_date: When this configuration snapshot was observed or applied (timezone-aware recommended).
+
+    Returns:
+        Dict with ``schema_version`` (``DEVICE_CONFIGURATION_SCHEMA_VERSION``), ``device_id``,
+        network fields, hostname, mac_address, and ``applied_date``.
+
+    Raises:
+        ValueError: If device_id is None.
+    """
+    if device_id is None:
+        raise ValueError("device_id is required")
+    doc: dict = {
+        "schema_version": DEVICE_CONFIGURATION_SCHEMA_VERSION,
+        "device_id": device_id,
+        "ip_address": ip_address,
+        "subnet_mask": subnet_mask,
+        "gateway": gateway,
+        "default_gateway": default_gateway,
+        "hostname": hostname,
+        "mac_address": mac_address,
+        "applied_date": applied_date,
+    }
+    return doc

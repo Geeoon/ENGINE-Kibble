@@ -2,13 +2,17 @@
 Defines a device retriever
 """
 
-from typing import Optional
+from typing import Optional, Union
+
+from bson import ObjectId
 from pymongo import MongoClient
-from bson import ObjectId  
-from Kibble.Logging.EventSchema import device_types, EVENT_SCHEMA_VERSION
+
+from Kibble.Logging.EventSchema import DEVICE_CONFIGURATION_SCHEMA_VERSION, device_types
 
 DEVICES_COLLECTION = "devices"
 DEVICE_TYPES_COLLECTION = "device_types"
+DEVICE_CONFIGURATIONS_COLLECTION = "device_configurations"
+
 
 class DeviceRetriever:
     def __init__(self, db_name: str, host: str='database.internal', port: int=27017, user: str='root', passwd: str='password', client: MongoClient=None):
@@ -33,32 +37,99 @@ class DeviceRetriever:
         if DEVICES_COLLECTION not in self.db.list_collection_names():
             self.db.create_collection(DEVICES_COLLECTION)
         self.devices_collection = self.db[DEVICES_COLLECTION]
+        self.devices_collection.create_index([("asset_tag", 1)], unique=True, sparse=True)
 
         if DEVICE_TYPES_COLLECTION not in self.db.list_collection_names():
             self.db.create_collection(DEVICE_TYPES_COLLECTION)
         self.device_types_collection = self.db[DEVICE_TYPES_COLLECTION]
 
+        if DEVICE_CONFIGURATIONS_COLLECTION not in self.db.list_collection_names():
+            self.db.create_collection(DEVICE_CONFIGURATIONS_COLLECTION)
+        self.device_configurations_collection = self.db[DEVICE_CONFIGURATIONS_COLLECTION]
+        self.device_configurations_collection.create_index(
+            [("device_id", 1), ("applied_date", -1)]
+        )
+        self.device_configurations_collection.create_index(
+            [("ip_address", 1), ("applied_date", -1)]
+        )
+
     def get_device_id(self, endpoint_ip: str) -> Optional[ObjectId]:
-        doc = self.devices_collection.find_one({"device_ip": endpoint_ip}, {"_id": 1})
+        """Resolve device ``_id`` from the newest config whose ``ip_address`` matches."""
+        doc = self.device_configurations_collection.find_one(
+            {"ip_address": endpoint_ip},
+            sort=[("applied_date", -1)],
+            projection={"device_id": 1},
+        )
+        return doc["device_id"] if doc else None
+
+    def get_device_id_by_asset_tag(self, asset_tag: int) -> Optional[ObjectId]:
+        doc = self.devices_collection.find_one({"asset_tag": asset_tag}, {"_id": 1})
         return doc["_id"] if doc else None
 
     def get_device_ids(self, endpoint_ips: list[str]) -> dict[str, ObjectId]:
-        """Return mapping of device_ip -> _id for all IPs present in the devices collection (one query)."""
+        """Map ``endpoint_ip`` -> device ``_id`` using latest configuration rows."""
         if not endpoint_ips:
             return {}
-        cursor = self.devices_collection.find(
-            {"device_ip": {"$in": endpoint_ips}},
-            {"_id": 1, "device_ip": 1},
-        )
-        return {doc["device_ip"]: doc["_id"] for doc in cursor}
-    
-    def ensure_device_type(self, name: str, protocols_supported: list[str]) -> ObjectId:
+        out: dict[str, ObjectId] = {}
+        for ip in endpoint_ips:
+            oid = self.get_device_id(ip)
+            if oid is not None:
+                out[ip] = oid
+        return out
+
+    def ensure_device_type(
+        self,
+        name_or_spec: Optional[Union[str, tuple[str, list[str]]]],
+        protocols_supported: Optional[list[str]] = None,
+    ) -> ObjectId:
+        """Ensure a device_types row exists. Accepts ``(name, protocols)`` (Kibble default_device_type) or separate name and protocols."""
+        if name_or_spec is None:
+            name = "default"
+            protos = list(protocols_supported) if protocols_supported else ["ICMP"]
+        elif isinstance(name_or_spec, tuple):
+            name, protos = name_or_spec[0], list(name_or_spec[1])
+        else:
+            name = name_or_spec
+            if protocols_supported is None:
+                raise ValueError("protocols_supported is required when name is a str")
+            protos = list(protocols_supported)
+
         existing = self.device_types_collection.find_one({"name": name})
         if existing:
             return existing["_id"]
-        doc = device_types(name, protocols_supported)
+        doc = device_types(name, protos)
         ret = self.device_types_collection.insert_one(doc)
         return ret.inserted_id
+
+    def insert_device_configuration(self, doc: dict) -> ObjectId:
+        """Insert a document from ``EventSchema.device_configuration`` (enforces ``schema_version``)."""
+        if doc.get("schema_version") != DEVICE_CONFIGURATION_SCHEMA_VERSION:
+            raise ValueError(
+                f"device_configuration schema_version must be {DEVICE_CONFIGURATION_SCHEMA_VERSION}, "
+                f"got {doc.get('schema_version')!r}; build docs with EventSchema.device_configuration"
+            )
+        ret = self.device_configurations_collection.insert_one(doc)
+        return ret.inserted_id
+
+    def get_latest_device_configuration(self, device_id: ObjectId) -> Optional[dict]:
+        """Newest configuration row for this device (by ``applied_date``), or None."""
+        return self.device_configurations_collection.find_one(
+            {"device_id": device_id},
+            sort=[("applied_date", -1)],
+        )
+
+    def get_device_configuration_history(
+        self, device_id: ObjectId, *, limit: int = 100
+    ) -> list[dict]:
+        """Configuration snapshots for a device, newest ``applied_date`` first."""
+        if limit < 1:
+            return []
+        cursor = self.device_configurations_collection.find(
+            {"device_id": device_id},
+            sort=[("applied_date", -1)],
+            limit=limit,
+        )
+        return list(cursor)
 
     def close(self):
         self.client.close()

@@ -15,6 +15,7 @@ from Kibble.Logging.EventSchema import device_types, EVENT_SCHEMA_VERSION
 EVENTS_COLLECTION = "timeseries_events"
 DEVICES_COLLECTION = "devices"
 DEVICE_TYPES_COLLECTION = "device_types"
+DEVICE_CONFIGURATIONS_COLLECTION = "device_configurations"
 
 
 class MongoLogger(Logger):
@@ -47,18 +48,28 @@ class MongoLogger(Logger):
         self.device_types_collection = self.db[DEVICE_TYPES_COLLECTION]
 
     def _get_device_id(self, endpoint_ip: str) -> Optional[ObjectId]:
-        doc = self.devices_collection.find_one({"device_ip": endpoint_ip}, {"_id": 1})
-        return doc["_id"] if doc else None
+        doc = self.db[DEVICE_CONFIGURATIONS_COLLECTION].find_one(
+            {"ip_address": endpoint_ip},
+            sort=[("applied_date", -1)],
+            projection={"device_id": 1},
+        )
+        return doc["device_id"] if doc else None
 
     def _get_device_ids(self, endpoint_ips: list[str]) -> dict[str, ObjectId]:
-        """Return mapping of device_ip -> _id for all IPs present in the devices collection (one query)."""
+        """Map endpoint IP -> device _id using latest device_configuration rows."""
         if not endpoint_ips:
             return {}
-        cursor = self.devices_collection.find(
-            {"device_ip": {"$in": endpoint_ips}},
-            {"_id": 1, "device_ip": 1},
-        )
-        return {doc["device_ip"]: doc["_id"] for doc in cursor}
+        coll = self.db[DEVICE_CONFIGURATIONS_COLLECTION]
+        out: dict[str, ObjectId] = {}
+        for ip in endpoint_ips:
+            doc = coll.find_one(
+                {"ip_address": ip},
+                sort=[("applied_date", -1)],
+                projection={"device_id": 1},
+            )
+            if doc:
+                out[ip] = doc["device_id"]
+        return out
 
     def _ensure_device_type(self, name: str, protocols_supported: list[str]) -> ObjectId:
         existing = self.device_types_collection.find_one({"name": name})
@@ -94,11 +105,11 @@ class MongoLogger(Logger):
 
     def log_device_many(self, data: list[dict]) -> bool:
         for doc in data:
-            device_ip = doc.get("device_ip")
-            if device_ip is None:
+            asset_tag = doc.get("asset_tag")
+            if asset_tag is None:
                 continue
             self.devices_collection.update_one(
-                {"device_ip": device_ip},
+                {"asset_tag": asset_tag},
                 {"$set": doc},
                 upsert=True,
             )

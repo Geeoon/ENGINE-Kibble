@@ -1,8 +1,11 @@
 # Main python script
 
+import datetime
+
 from Kibble import Kibble
 from Kibble.Alerting import EmailAlert, ScreenAlert
 from Kibble.Logging import MongoHandler
+from Kibble.Logging.EventSchema import device_configuration
 from Kibble.Monitoring.Active import ICMPMonitor
 import logging
 
@@ -53,23 +56,45 @@ email_alert = EmailAlert()
 monitor = ICMPMonitor(endpoints=[], timeout=5)
 kibble = Kibble(client=mongo_status_handler.client, monitors=[monitor], alerters=[screen_alert], default_device_type=("device 1", ["ICMP"]))
 
-# testing only: add devices to db, if they don't exist, for testing.
-mongo_status_handler.db['devices'].update_one({"ip": "127.0.0.1"}, { "$setOnInsert": {
-    "device_ip": "127.0.0.1",
-    "device_type_id": kibble.default_device_type_id
-    } }, upsert=True)
-mongo_status_handler.db['devices'].update_one({"hostname": "doesnotexist.internal"}, { "$setOnInsert": {
-    "hostname": "doesnotexist.internal",
-    "device_type_id": kibble.default_device_type_id
-    } }, upsert=True)
-mongo_status_handler.db['devices'].update_one({"ip": "192.67.67.67"}, { "$setOnInsert": {
-    "device_ip": "192.67.67.67",
-    "device_type_id": kibble.default_device_type_id
-    } }, upsert=True)
-for id in range(1, 6):
-    mongo_status_handler.db['devices'].update_one({"hostname": f"simulator-secondary-{id}"}, { "$setOnInsert": {
-        "hostname": f"simulator-secondary-{id}",
-        "device_type_id": kibble.default_device_type_id
-        } }, upsert=True)
+_db = mongo_status_handler.db
+_dtype = kibble.default_device_type_id
+_retriever = kibble.device_retriever
+
+
+def _seed_device(asset_tag: int, ip_address: str, hostname: str, mac_address: str = "") -> None:
+    """Upsert stable device row (asset_tag + device_type_id) and ensure one initial configuration snapshot."""
+    _db["devices"].update_one(
+        {"asset_tag": asset_tag},
+        {"$setOnInsert": {"device_type_id": _dtype, "asset_tag": asset_tag}},
+        upsert=True,
+    )
+    dev = _db["devices"].find_one({"asset_tag": asset_tag})
+    if dev is None:
+        raise RuntimeError(f"devices upsert failed for asset_tag={asset_tag}")
+    oid = dev["_id"]
+    if _db["device_configurations"].find_one({"device_id": oid}, projection={"_id": 1}) is None:
+        applied = datetime.datetime.now(datetime.timezone.utc)
+        doc = device_configuration(
+            oid,
+            ip_address,
+            "",
+            "",
+            "",
+            hostname,
+            mac_address,
+            applied,
+        )
+        _retriever.insert_device_configuration(doc)
+
+
+# testing only: devices = identity only; network identity lives in device_configurations.
+_seed_device(101, "127.0.0.1", "")
+_seed_device(102, "", "doesnotexist.internal")
+_seed_device(103, "192.67.67.67", "")
+for sim_id in range(1, 6):
+    _seed_device(200 + sim_id, "", f"simulator-secondary-{sim_id}")
+
+# __init__ ran before seeds; refresh monitors from DB + configs now.
+kibble._get_devices()
 
 kibble.run()
