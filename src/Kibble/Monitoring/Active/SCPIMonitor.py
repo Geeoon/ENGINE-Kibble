@@ -14,7 +14,7 @@ class SCPIMonitor(StatusMonitor):
     Monitors the status of endpoints using SCPI *IDN? commands 
     """
 
-    def __init__(self, endpoints: list[str], timeout: int=10, workers: int=5, port: int=5025):
+    def __init__(self, endpoints: list[str]=[], timeout: int=10, workers: int=5, port: int=5025):
         """
         Initializes the SCPIMonitor
         
