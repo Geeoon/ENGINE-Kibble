@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+
+<html lang="en" data-content_root="../">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="generator" content="Docutils 0.18.1: http://docutils.sourceforge.net/" />
+
+    <title>Kibble.Logging.EventSchema module &#8212; Kibble 1.0 documentation</title>
+    <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=61cd365c" />
+    <link rel="stylesheet" type="text/css" href="../_static/alabaster.css?v=12dfc556" />
+    <script src="../_static/documentation_options.js?v=f2a433a1"></script>
+    <script src="../_static/doctools.js?v=9a2dae69"></script>
+    <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="Kibble.Logging.Logger module" href="Kibble.Logging.Logger.html" />
+    <link rel="prev" title="Kibble.Logging package" href="Kibble.Logging.html" />
+   
+  <link rel="stylesheet" href="../_static/custom.css" type="text/css" />
+  
+
+  
+  
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <section id="module-Kibble.Logging.EventSchema">
+<span id="kibble-logging-eventschema-module"></span><h1>Kibble.Logging.EventSchema module<a class="headerlink" href="#module-Kibble.Logging.EventSchema" title="Link to this heading">¶</a></h1>
+<dl class="py function">
+<dt class="sig sig-object py" id="Kibble.Logging.EventSchema.ICMP">
+<span class="sig-prename descclassname"><span class="pre">Kibble.Logging.EventSchema.</span></span><span class="sig-name descname"><span class="pre">ICMP</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">status_data</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">dict</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">severity</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="Kibble.Logging.Logger.html#Kibble.Logging.Logger.LogLevel" title="Kibble.Logging.Logger.LogLevel"><span class="pre">LogLevel</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">LogLevel.CRITICAL</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">device_id</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bson.ObjectId</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">dict</span></span></span><a class="headerlink" href="#Kibble.Logging.EventSchema.ICMP" title="Link to this definition">¶</a></dt>
+<dd><p>Builds an ICMP endpoint-status event document for logging.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>status_data</strong> – Dict with “alive”, “latency”, and “last_updated” status.</p></li>
+<li><p><strong>severity</strong> – Log level (default CRITICAL).</p></li>
+<li><p><strong>device_id</strong> – Required device ObjectId; must not be None.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Event dict with schema_version, timestamp, event_type, status, severity_level, and device_id.</p>
+</dd>
+<dt class="field-odd">Raises<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>ValueError</strong> – If device_id is None.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="Kibble.Logging.EventSchema.device_info">
+<span class="sig-prename descclassname"><span class="pre">Kibble.Logging.EventSchema.</span></span><span class="sig-name descname"><span class="pre">device_info</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">device_type_id</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bson.ObjectId</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">endpoint_ip</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">status_data</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">dict</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">dict</span></span></span><a class="headerlink" href="#Kibble.Logging.EventSchema.device_info" title="Link to this definition">¶</a></dt>
+<dd><p>Builds a device-info document from endpoint IP and status data.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>device_type_id</strong> – Optional device type ObjectId; included in doc if not None.</p></li>
+<li><p><strong>endpoint_ip</strong> – The endpoint IP address (stored as device_ip).</p></li>
+<li><p><strong>status_data</strong> – Dict with “hostname” and “mac_address” (default to “” if missing).</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Dict with device_ip, hostname, mac_address, and optionally device_type_id.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="Kibble.Logging.EventSchema.device_types">
+<span class="sig-prename descclassname"><span class="pre">Kibble.Logging.EventSchema.</span></span><span class="sig-name descname"><span class="pre">device_types</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">protocols_supported</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">list</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#Kibble.Logging.EventSchema.device_types" title="Link to this definition">¶</a></dt>
+<dd><p>Builds a device-type document with name and supported protocols.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>name</strong> – Display name of the device type.</p></li>
+<li><p><strong>protocols_supported</strong> – List of protocol identifiers (e.g. “ICMP”); copied into the doc.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Dict with “name” and “protocols_supported”.</p>
+</dd>
+</dl>
+</dd></dl>
+
+</section>
+
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="../index.html">Kibble</a></h1>
+
+
+
+
+
+
+
+
+<h3>Navigation</h3>
+<p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../installation.html">Installation and Setup</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../configuration.html">Configuration Parameters</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../database_schema.html">Database Schema</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="modules.html">Kibble</a><ul class="current">
+<li class="toctree-l2 current"><a class="reference internal" href="Kibble.html">Kibble Package</a></li>
+</ul>
+</li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../index.html">Documentation overview</a><ul>
+  <li><a href="modules.html">Kibble</a><ul>
+  <li><a href="Kibble.html">Kibble Package</a><ul>
+  <li><a href="Kibble.Logging.html">Kibble.Logging package</a><ul>
+      <li>Previous: <a href="Kibble.Logging.html" title="previous chapter">Kibble.Logging package</a></li>
+      <li>Next: <a href="Kibble.Logging.Logger.html" title="next chapter">Kibble.Logging.Logger module</a></li>
+  </ul></li>
+  </ul></li>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+<search id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</search>
+<script>document.getElementById('searchbox').style.display = "block"</script>
+
+
+
+
+
+
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &#169;2026, Giannah Donahoe, Rohan Sabhaya, Geeoon Chung, Elliot Norman, Anya Guyton.
+      
+      |
+      Powered by <a href="https://www.sphinx-doc.org/">Sphinx 7.3.7</a>
+      &amp; <a href="https://alabaster.readthedocs.io">Alabaster 0.7.16</a>
+      
+      |
+      <a href="../_sources/api/Kibble.Logging.EventSchema.rst.txt"
+          rel="nofollow">Page source</a>
+    </div>
+
+    
+
+    
+  </body>
+</html>
