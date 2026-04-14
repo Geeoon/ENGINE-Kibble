@@ -100,5 +100,6 @@ while tries < 25:
     except Exception as e:
         if (time.time() - last_fail) > 300:  # if it's been more than 5 minutes since the last fail
             tries = 1  # reset
+        last_fail = time.time()
         maintainance_logger.critical(f"Uncaught exception: {str(e)}.  Attemping to restart the service, try {tries}")
         tries += 1
