@@ -53,7 +53,7 @@ email_alert = EmailAlert()
 kibble = Kibble(client=mongo_status_handler.client, monitors=[ICMPMonitor(endpoints=[], timeout=5), SCPIMonitor(endpoints=[], timeout=5)], alerters=[screen_alert], default_device_type=("device 1", ["ICMP"]))
 
 # testing only: add scpi device type to db
-scpi_id = kibble.device_retriever.ensure_device_type(("device 2", ["SCPI"]), ["SCPI"])
+scpi_id = kibble.device_retriever.ensure_device_type("device 2", ["SCPI"])
 # testing only: add devices to db, if they don't exist
 mongo_status_handler.db['devices'].update_one({"ip": "127.0.0.1"}, { "$setOnInsert": {
     "device_ip": "127.0.0.1",
