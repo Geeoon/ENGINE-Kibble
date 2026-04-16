@@ -1,0 +1,14 @@
+[Unit]
+Description=Kibble Edge Node Telemetry Collector
+After=network.target
+
+[Service]
+Type=simple
+User=
+Group=
+ExecStart=/usr/bin/python3 #location of monitoring script
+Restart=on-failure
+RestartSec=10s
+
+[Install]
+WantedBy=multi-user.target
