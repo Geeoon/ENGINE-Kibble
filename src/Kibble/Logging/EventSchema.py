@@ -97,53 +97,6 @@ def device_types(name: str, protocols_supported: list[str]) -> dict:
         "protocols_supported": list(protocols_supported),
     }
 
-# def device_configuration(
-#     device_id: Optional[ObjectId],
-#     ip_address: str,
-#     subnet_mask: str,
-#     gateway: str,
-#     default_gateway: str,
-#     hostname: str,
-#     mac_address: str,
-#     applied_date: datetime.datetime,
-# ) -> dict:
-#     """Builds a device-configuration document for fields that change over time.
-
-#     Use this for mutable network and host identity (IP, routing, hostname, MAC)
-#     separate from stable device metadata (e.g. ``device_info``).
-
-#     Args:
-#         device_id: Device ObjectId; required.
-#         ip_address: Current IPv4/IPv6 address.
-#         subnet_mask: Subnet mask for the interface.
-#         gateway: Gateway for the subnet/route.
-#         default_gateway: System default gateway.
-#         hostname: Resolved or configured hostname.
-#         mac_address: Interface MAC address.
-#         applied_date: When this configuration snapshot was observed or applied (timezone-aware recommended).
-
-#     Returns:
-#         Dict with ``schema_version`` (``DEVICE_CONFIGURATION_SCHEMA_VERSION``), ``device_id``,
-#         network fields, hostname, mac_address, and ``applied_date``.
-
-#     Raises:
-#         ValueError: If device_id is None.
-#     """
-#     if device_id is None:
-#         raise ValueError("device_id is required")
-#     doc: dict = {
-#         "schema_version": DEVICE_CONFIGURATION_SCHEMA_VERSION,
-#         "device_id": device_id,
-#         "ip_address": ip_address,
-#         "subnet_mask": subnet_mask,
-#         "gateway": gateway,
-#         "default_gateway": default_gateway,
-#         "hostname": hostname,
-#         "mac_address": mac_address,
-#         "applied_date": applied_date,
-#     }
-#     return doc
-
 def device_configuration(
     device_id: Optional[ObjectId],
     interfaces: list[ObjectId],

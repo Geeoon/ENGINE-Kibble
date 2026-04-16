@@ -148,6 +148,104 @@ class DeviceRetriever:
             sort=[("applied_date", -1)],
         )
 
+    def get_devices(self, default_interface_name: str = "default") -> dict[str, dict]:
+        """Return monitor-ready devices keyed by device ``_id`` string.
+
+        Network identity is resolved from the latest ``device_configuration`` and referenced
+        ``interface_configurations`` rows; stable device metadata comes from ``devices``.
+        """
+        results = self.devices_collection.aggregate(
+            [
+                {
+                    "$lookup": {
+                        "from": DEVICE_TYPES_COLLECTION,
+                        "localField": "device_type_id",
+                        "foreignField": "_id",
+                        "as": "device_type",
+                    }
+                },
+                {
+                    "$lookup": {
+                        "from": DEVICE_CONFIGURATIONS_COLLECTION,
+                        "let": {"dev_id": "$_id"},
+                        "pipeline": [
+                            {"$match": {"$expr": {"$eq": ["$device_id", "$$dev_id"]}}},
+                            {"$sort": {"applied_date": -1}},
+                            {"$limit": 1},
+                        ],
+                        "as": "latest_config",
+                    }
+                },
+                {"$addFields": {"_cfg": {"$arrayElemAt": ["$latest_config", 0]}}},
+                {
+                    "$lookup": {
+                        "from": INTERFACE_CONFIGURATIONS_COLLECTION,
+                        "let": {"iface_ids": {"$ifNull": ["$_cfg.interfaces", []]}},
+                        "pipeline": [
+                            {"$match": {"$expr": {"$in": ["$_id", "$$iface_ids"]}}},
+                        ],
+                        "as": "iface_docs",
+                    }
+                },
+                {
+                    "$addFields": {
+                        "_iface": {
+                            "$ifNull": [
+                                {
+                                    "$arrayElemAt": [
+                                        {
+                                            "$filter": {
+                                                "input": {"$ifNull": ["$iface_docs", []]},
+                                                "as": "i",
+                                                "cond": {
+                                                    "$eq": [
+                                                        "$$i.interface_name",
+                                                        default_interface_name,
+                                                    ]
+                                                },
+                                            }
+                                        },
+                                        0,
+                                    ]
+                                },
+                                {"$arrayElemAt": [{"$ifNull": ["$iface_docs", []]}, 0]},
+                            ]
+                        }
+                    }
+                },
+                {
+                    "$project": {
+                        "_id": 1,
+                        "device_ip": "$_iface.ip_address",
+                        "hostname": "$_iface.hostname",
+                        "mac_address": "$_iface.mac_address",
+                        "device_type.protocols_supported": 1,
+                    }
+                },
+            ]
+        )
+
+        devices: dict[str, dict] = {}
+        for device in results:
+            if not device.get("device_type"):
+                continue
+            protocols = list(
+                {
+                    proto
+                    for protocol in device.get("device_type", [])
+                    for proto in protocol.get("protocols_supported", [])
+                }
+            )
+            device_id = str(device["_id"])
+            devices[device_id] = {
+                "ip": device.get("device_ip"),
+                "hostname": device.get("hostname"),
+                "mac": device.get("mac_address"),
+                "protocols": protocols,
+            }
+
+        return devices
+
     def get_device_configuration_history(
         self, device_id: ObjectId, *, limit: int = 100
     ) -> list[dict]:

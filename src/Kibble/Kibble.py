@@ -16,11 +16,7 @@ from Kibble.Logging.EventSchema import device_configuration, interface_configura
 from Kibble.Monitoring import StatusMonitor
 from Kibble.Alerting import Alert
 from Kibble.Detecting import Detector, LatencyDetector
-from Kibble.Retrieval import (
-    DEVICE_CONFIGURATIONS_COLLECTION,
-    INTERFACE_CONFIGURATIONS_COLLECTION,
-    DeviceRetriever,
-)
+from Kibble.Retrieval import DeviceRetriever
 
 DEFAULT_MONITOR_INTERFACE_NAME = "default"
 
@@ -139,7 +135,7 @@ class Kibble:
                 if not this_status:
                     continue
                 level = self.detector.get_level(key, this_status)
-                logs.append(ICMP(this_status, level, device_id=ObjectId(key)))
+                logs.append(ICMP(this_status, level, device_id=ObjectId(key))) # FIX
                 levels.append(level)
 
         return logs, levels
@@ -153,60 +149,56 @@ class Kibble:
             # e.g. data/levels length mismatch; skip this logger and continue
             pass
 
-    @staticmethod
-    def _interface_row_fingerprint(iface: dict) -> tuple[str, ...]:
-        """Stable tuple for one interface row (excludes schema_version, applied_date, _id, device_id)."""
-        return (
-            str(iface.get("interface_name") or ""),
-            str(iface.get("ip_address") or ""),
-            str(iface.get("hostname") or ""),
-            str(iface.get("mac_address") or ""),
-            str(iface.get("subnet_mask") or ""),
-            str(iface.get("default_gateway") or ""),
-        )
-
-    def _primary_interface_from_device_configuration(self, device_cfg: dict) -> Optional[dict]:
+    def _primary_interface_fields_from_device_configuration(self, device_cfg: dict) -> Optional[tuple[str, str, str, str, str]]:
+        """Return primary interface fields tuple from one device_configuration snapshot."""
         ids = device_cfg.get("interfaces") or []
         if not ids:
             return None
         rows = self.device_retriever.get_interface_documents_ordered(ids)
-        for row in rows:
-            if row.get("interface_name") == DEFAULT_MONITOR_INTERFACE_NAME:
-                return row
-        return rows[0] if rows else None
+        if not rows:
+            return None
+
+        primary = next(
+            (row for row in rows if row.get("interface_name") == DEFAULT_MONITOR_INTERFACE_NAME),
+            rows[0],
+        )
+
+        return (
+            str(primary.get("ip_address") or ""),
+            str(primary.get("hostname") or ""),
+            str(primary.get("mac_address") or ""),
+            str(primary.get("subnet_mask") or ""),
+            str(primary.get("default_gateway") or ""),
+        )
 
     def _record_device_configuration_if_changed(self, id_str: str, new_device: dict) -> None:
         """Insert interface + device_configuration rows when the primary interface identity changed.
 
         Subnet mask and gateways are not sourced yet; stored as empty strings until a probe exists.
         """
-        # TODO: populate from SNMP/agent when available
+        # Current monitor payload has no subnet/gateway fields yet.
         subnet_mask = ""
         default_gateway = ""
-
         ip_address = str(new_device.get("ip") or "")
         hostname = str(new_device.get("hostname") or "")
         mac_address = str(new_device.get("mac") or "")
+        proposed_primary = (
+            ip_address,
+            hostname,
+            mac_address,
+            subnet_mask,
+            default_gateway,
+        )
 
         oid = ObjectId(id_str)
-        proposed_iface = {
-            "interface_name": DEFAULT_MONITOR_INTERFACE_NAME,
-            "ip_address": ip_address,
-            "hostname": hostname,
-            "mac_address": mac_address,
-            "subnet_mask": subnet_mask,
-            "default_gateway": default_gateway,
-        }
-        proposed = self._interface_row_fingerprint(proposed_iface)
-
         latest = self.device_retriever.get_latest_device_configuration(oid)
         if latest is not None:
-            primary = self._primary_interface_from_device_configuration(latest)
-            if primary is not None and self._interface_row_fingerprint(primary) == proposed:
+            latest_primary = self._primary_interface_fields_from_device_configuration(latest)
+            if latest_primary is not None and latest_primary == proposed_primary:
                 return
 
         applied_date = datetime.datetime.now(datetime.timezone.utc)
-        iface_doc = interface_configuration(
+        interface_doc = interface_configuration(
             oid,
             DEFAULT_MONITOR_INTERFACE_NAME,
             ip_address,
@@ -216,162 +208,49 @@ class Kibble:
             mac_address,
             applied_date,
         )
-        iface_id = self.device_retriever.insert_interface_configuration(iface_doc)
-        doc = device_configuration(oid, [iface_id], applied_date)
+        interface_id = self.device_retriever.insert_interface_configuration(interface_doc)
+        doc = device_configuration(oid, [interface_id], applied_date)
         self.device_retriever.insert_device_configuration(doc)
 
     def _get_devices(self):
         self.maintainance_logger.debug("Getting devices from database")
 
-        if self.devices_collection is None:
-            raise ValueError("devices_collection must be provided")
-
-        # Network fields come only from latest device_configuration; devices hold device_type_id + asset_tag.
-        results = self.devices_collection.aggregate(
-            [
-                {
-                    "$lookup": {
-                        "from": "device_types",
-                        "localField": "device_type_id",
-                        "foreignField": "_id",
-                        "as": "device_type",
-                    }
-                },
-                {
-                    "$lookup": {
-                        "from": DEVICE_CONFIGURATIONS_COLLECTION,
-                        "let": {"dev_id": "$_id"},
-                        "pipeline": [
-                            {
-                                "$match": {
-                                    "$expr": {"$eq": ["$device_id", "$$dev_id"]},
-                                }
-                            },
-                            {"$sort": {"applied_date": -1}},
-                            {"$limit": 1},
-                        ],
-                        "as": "latest_config",
-                    }
-                },
-                {
-                    "$addFields": {
-                        "_cfg": {"$arrayElemAt": ["$latest_config", 0]},
-                    }
-                },
-                {
-                    "$lookup": {
-                        "from": INTERFACE_CONFIGURATIONS_COLLECTION,
-                        "let": {
-                            "iface_ids": {"$ifNull": ["$_cfg.interfaces", []]},
-                        },
-                        "pipeline": [
-                            {
-                                "$match": {
-                                    "$expr": {"$in": ["$_id", "$$iface_ids"]},
-                                }
-                            },
-                        ],
-                        "as": "iface_docs",
-                    }
-                },
-                {
-                    "$addFields": {
-                        "_iface": {
-                            "$ifNull": [
-                                {
-                                    "$arrayElemAt": [
-                                        {
-                                            "$filter": {
-                                                "input": {"$ifNull": ["$iface_docs", []]},
-                                                "as": "i",
-                                                "cond": {
-                                                    "$eq": [
-                                                        "$$i.interface_name",
-                                                        DEFAULT_MONITOR_INTERFACE_NAME,
-                                                    ]
-                                                },
-                                            }
-                                        },
-                                        0,
-                                    ]
-                                },
-                                {"$arrayElemAt": [{"$ifNull": ["$iface_docs", []]}, 0]},
-                            ]
-                        },
-                    }
-                },
-                {
-                    "$project": {
-                        "_id": 1,
-                        "asset_tag": 1,
-                        "device_ip": "$_iface.ip_address",
-                        "hostname": "$_iface.hostname",
-                        "mac_address": "$_iface.mac_address",
-                        "device_type.protocols_supported": 1,
-                    }
-                },
-            ]
+        latest_devices = self.device_retriever.get_devices(
+            default_interface_name=DEFAULT_MONITOR_INTERFACE_NAME
         )
+        monitors_by_protocol = {str(monitor): monitor for monitor in self.monitors}
 
-        # convert results to the dictionary
-        for device in results:
-            id = str(device['_id'])
-            if not device["device_type"]:
-                self.maintainance_logger.error(f"No corresponding device type found for {id}")
-                continue
+        for device_id, new_device in latest_devices.items():
+            if device_id not in self.devices:
+                self.maintainance_logger.info(f"Found new device: {device_id}")
 
-            protocols = list(
-                {
-                    proto
-                    for protocol in device.get("device_type", [])
-                    for proto in protocol.get("protocols_supported", [])
-                }
-            )
-
-            if not device.get("device_ip") and not device.get("hostname"):
+            if not new_device.get("ip") and not new_device.get("hostname"):
                 self.maintainance_logger.warning(
-                    f"Device {id} has no device_configuration snapshot (need ip and/or hostname to monitor)"
+                    f"Device {device_id} has no device_configuration snapshot (need ip and/or hostname to monitor)"
                 )
-                if id not in self.devices.keys():
-                    self.maintainance_logger.info(f"Found new device: {id}")
-                self.devices[id] = {
-                    "ip": None,
-                    "hostname": None,
-                    "mac": None,
-                    "protocols": protocols,
-                }
+
+            if self.devices.get(device_id) == new_device:
                 continue
 
-            if id not in self.devices.keys():
-                self.maintainance_logger.info(f"Found new device: {id}")
-                self.devices[id] = {}
+            self.maintainance_logger.info(f"Updating device information for {device_id}")
+            self._record_device_configuration_if_changed(device_id, new_device)
+            self.devices[device_id] = new_device
 
-            new_device = {
-                "ip": device.get("device_ip", None),
-                "hostname": device.get("hostname", None),
-                "mac": device.get("mac_address", None),
-                "protocols": protocols,
-            }
-
-            if self.devices[id] != new_device:
-                self.maintainance_logger.info(f"Updating device information for {id}")
-                self._record_device_configuration_if_changed(id, new_device)
-                self.devices[id] = new_device
-
-        for id, device in self.devices.items():
+        for device_id, device in self.devices.items():
             if not device.get("ip") and not device.get("hostname"):
                 continue
             protocols = device.get("protocols")
             if not protocols:
                 continue
+
             for protocol in protocols:
-                found = False
-                for monitor in self.monitors:
-                    if protocol == str(monitor):
-                        monitor.add_endpoint(additional=[device | {'id': id}])
-                        found = True
-                if not found:  # no monitor found for this protocol
-                    self.maintainance_logger.error(f"{id} attempting to use unsupported protocol {protocol}")
+                monitor = monitors_by_protocol.get(protocol)
+                if monitor is None:
+                    self.maintainance_logger.error(
+                        f"{device_id} attempting to use unsupported protocol {protocol}"
+                    )
+                    continue
+                monitor.add_endpoint(additional=[device | {"id": device_id}])
 
     def _end(self, msg: str=""):
         self.maintainance_logger.debug(msg)
