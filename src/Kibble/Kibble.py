@@ -11,7 +11,7 @@ from typing import Optional
 from bson import ObjectId
 from pymongo import MongoClient
 
-from Kibble.Logging import LogLevel, ICMP
+from Kibble.Logging import LogLevel, LatencyStructure
 from Kibble.Logging.EventSchema import device_configuration, interface_configuration
 from Kibble.Monitoring import StatusMonitor
 from Kibble.Alerting import Alert
@@ -59,19 +59,19 @@ class Kibble:
                 raise ValueError(
                     "Status interval must be greater than each monitor's timeout"
                 )
-            
+
         self.monitors = monitors
         self.alerters = alerters or []
         self.detector = detector
         self.interval = interval
 
-        self.device_retriever = DeviceRetriever(db_name="kibble", client=client)
-        self.default_device_type_id = self.device_retriever.ensure_device_type(default_device_type, ['ICMP']) 
+        self.device_retriever = DeviceRetriever(client=client, db_name="kibble")
+        self.default_device_type_id = self.device_retriever.ensure_device_type(
+            default_device_type, ["ICMP"]
+        )
 
         # Collections
         self.devices_collection = self.device_retriever.devices_collection
-        self.device_types_collection = self.device_retriever.device_types_collection
-        self.events_collection = self.device_retriever.db["timeseries_events"] # Fix later for constistency with dataretriever 
 
         # devices from the database
         self.devices = {}
@@ -85,6 +85,7 @@ class Kibble:
         """
         try:
             asyncio.run(self._rescan())
+            self._last_device_log_time = time.time()
 
             while True:
                 start_time = time.time()
@@ -94,7 +95,9 @@ class Kibble:
                 behind = (end_time - start_time) > self.interval
 
                 if behind:
-                    self.maintainance_logger.warning("Kibble service is lagging behind scanning interval")
+                    self.maintainance_logger.warning(
+                        "Kibble service is lagging behind scanning interval"
+                    )
 
                 self._send_to_loggers(logs, levels)
 
@@ -103,26 +106,38 @@ class Kibble:
                 for endpoint in alerts.keys():
                     self.maintainance_logger.info(f"Sending alert(s)")
                     for alerter in self.alerters:
-                        alerter.alert(f"ALERT FOR {endpoint}", alerts[endpoint]['level'])
+                        alerter.alert(
+                            f"ALERT FOR {endpoint}", alerts[endpoint]["level"]
+                        )
 
                 # check devices again
                 self._get_devices()
                 # wait until next interval
                 if not behind:
                     sleep_time = self.interval - end_time + start_time
-                    self.maintainance_logger.debug(f"Waiting {round(sleep_time, 1)} seconds until scanning again")
+                    self.maintainance_logger.debug(
+                        f"Waiting {round(sleep_time, 1)} seconds before scanning again"
+                    )
                     time.sleep(sleep_time)
 
         except KeyboardInterrupt:
-            self._end("user ended (KeyboardInterrupt)")
+            self.end("user ended (KeyboardInterrupt)")
         except Exception as e:
-            self._end(str(e))
+            self.end(str(e))
             raise
 
     async def _rescan(self):
         self.maintainance_logger.debug("Starting a network scan")
         await asyncio.gather(*[monitor.update_status() for monitor in self.monitors])
         self.maintainance_logger.debug("Finished scanning network")
+
+    @staticmethod
+    def _device_id_for_log(key: object) -> ObjectId:
+        if isinstance(key, ObjectId):
+            return key
+        if isinstance(key, str) and ObjectId.is_valid(key):
+            return ObjectId(key)
+        raise ValueError(f"monitor status key must be a valid ObjectId string, got {key!r}")
 
     def _get_logs(self) -> tuple[list[dict], list[LogLevel]]:
         logs: list[dict] = []
@@ -131,11 +146,15 @@ class Kibble:
         for monitor in self.monitors:
             res = monitor.get_status()
             for key, log in res.items():
-                this_status = log['status']
+                this_status = log["status"]
                 if not this_status:
                     continue
                 level = self.detector.get_level(key, this_status)
-                logs.append(ICMP(this_status, level, device_id=ObjectId(key))) # FIX
+                logs.append(
+                    LatencyStructure(
+                        this_status, level, device_id=self._device_id_for_log(key)
+                    )
+                )
                 levels.append(level)
 
         return logs, levels
@@ -144,12 +163,14 @@ class Kibble:
         try:
             for log, level in zip(logs, levels):
                 self.maintainance_logger.debug("Sending logs")
-                self.logger.log(int(level), log, extra={ "status": log })
+                self.logger.log(int(level), log, extra={"status": log})
         except ValueError:
             # e.g. data/levels length mismatch; skip this logger and continue
             pass
 
-    def _primary_interface_fields_from_device_configuration(self, device_cfg: dict) -> Optional[tuple[str, str, str, str, str]]:
+    def _primary_interface_fields_from_device_configuration(
+        self, device_cfg: dict
+    ) -> Optional[tuple[str, str, str, str, str]]:
         """Return primary interface fields tuple from one device_configuration snapshot."""
         ids = device_cfg.get("interfaces") or []
         if not ids:
@@ -159,7 +180,11 @@ class Kibble:
             return None
 
         primary = next(
-            (row for row in rows if row.get("interface_name") == DEFAULT_MONITOR_INTERFACE_NAME),
+            (
+                row
+                for row in rows
+                if row.get("interface_name") == DEFAULT_MONITOR_INTERFACE_NAME
+            ),
             rows[0],
         )
 
@@ -176,7 +201,6 @@ class Kibble:
 
         Subnet mask and gateways are not sourced yet; stored as empty strings until a probe exists.
         """
-        # Current monitor payload has no subnet/gateway fields yet.
         subnet_mask = ""
         default_gateway = ""
         ip_address = str(new_device.get("ip") or "")
@@ -193,7 +217,9 @@ class Kibble:
         oid = ObjectId(id_str)
         latest = self.device_retriever.get_latest_device_configuration(oid)
         if latest is not None:
-            latest_primary = self._primary_interface_fields_from_device_configuration(latest)
+            latest_primary = self._primary_interface_fields_from_device_configuration(
+                latest
+            )
             if latest_primary is not None and latest_primary == proposed_primary:
                 return
 
@@ -215,42 +241,46 @@ class Kibble:
     def _get_devices(self):
         self.maintainance_logger.debug("Getting devices from database")
 
-        latest_devices = self.device_retriever.get_devices(
+        previous = dict(self.devices)
+        self.devices = self.device_retriever.get_devices(
             default_interface_name=DEFAULT_MONITOR_INTERFACE_NAME
         )
-        monitors_by_protocol = {str(monitor): monitor for monitor in self.monitors}
 
-        for device_id, new_device in latest_devices.items():
-            if device_id not in self.devices:
-                self.maintainance_logger.info(f"Found new device: {device_id}")
+        for device_id, device in self.devices.items():
+            if previous.get(device_id) != device:
+                if previous and device_id not in previous:
+                    self.maintainance_logger.info(f"Found new device: {device_id}")
+                elif device_id in previous:
+                    self.maintainance_logger.info(
+                        f"Updating device information for {device_id}"
+                    )
+                self._record_device_configuration_if_changed(device_id, device)
 
-            if not new_device.get("ip") and not new_device.get("hostname"):
+            if (
+                previous.get(device_id) != device
+                and not device.get("ip")
+                and not device.get("hostname")
+            ):
                 self.maintainance_logger.warning(
                     f"Device {device_id} has no device_configuration snapshot (need ip and/or hostname to monitor)"
                 )
 
-            if self.devices.get(device_id) == new_device:
-                continue
-
-            self.maintainance_logger.info(f"Updating device information for {device_id}")
-            self._record_device_configuration_if_changed(device_id, new_device)
-            self.devices[device_id] = new_device
-
-        for device_id, device in self.devices.items():
-            if not device.get("ip") and not device.get("hostname"):
-                continue
-            protocols = device.get("protocols")
-            if not protocols:
-                continue
-
+        for id, device in self.devices.items():
+            protocols = device.get("protocols") or []
             for protocol in protocols:
-                monitor = monitors_by_protocol.get(protocol)
-                if monitor is None:
+                found = False
+                for monitor in self.monitors:
+                    if protocol == str(monitor):
+                        monitor.add_endpoint(additional=[device | {"id": id}])
+                        found = True
+                if not found:
                     self.maintainance_logger.error(
-                        f"{device_id} attempting to use unsupported protocol {protocol}"
+                        f"{id} attempting to use unsupported protocol {protocol}"
                     )
-                    continue
-                monitor.add_endpoint(additional=[device | {"id": device_id}])
 
-    def _end(self, msg: str=""):
+    def end(self, msg: str = ""):
         self.maintainance_logger.debug(msg)
+
+    def _end(self, msg: str = ""):
+        """Backward-compatible alias for ``end``."""
+        self.end(msg)

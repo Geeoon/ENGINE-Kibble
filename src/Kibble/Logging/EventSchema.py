@@ -19,20 +19,20 @@ EVENT_TYPE_ENDPOINT_UP = "endpoint_up"
 EVENT_TYPE_ENDPOINT_DOWN = "endpoint_down"
 
 
-def ICMP(status_data: dict, severity: LogLevel = LogLevel.CRITICAL, device_id: Optional[ObjectId] = None) -> dict:
-    """Builds an ICMP endpoint-status event document for logging.
+def LatencyStructure(
+    status_data: dict,
+    severity: LogLevel = LogLevel.CRITICAL,
+    device_id: Optional[ObjectId] = None,
+) -> dict:
+    """Builds an LatencyStructure endpoint-status event document for logging latency based telemetry.
 
     Args:
-        status_data: Input fields used to build ``status``: optional ``alive`` (default False),
-            ``latency`` (default 0, stored as ``latency_ms``), ``last_updated`` (default: event
-            ``timestamp`` as ISO string, stored as ``last_updated_ms``).
+        status_data: Dict with "alive", "latency", and "last_updated" status.
         severity: Log level (default CRITICAL).
         device_id: Required device ObjectId; must not be None.
 
     Returns:
-        Event dict with ``schema_version``, ``timestamp``, ``event_type`` (``endpoint_up`` or
-        ``endpoint_down`` from ``alive``), ``status`` (``alive``, ``latency_ms``, ``last_updated_ms``),
-        ``severity_level``, and ``device_id``.
+        Event dict with schema_version, timestamp, event_type, status, severity_level, and device_id.
 
     Raises:
         ValueError: If device_id is None.
@@ -55,6 +55,11 @@ def ICMP(status_data: dict, severity: LogLevel = LogLevel.CRITICAL, device_id: O
         "device_id": device_id,
     }
     return doc
+
+
+# Backward-compatible alias (same event shape).
+ICMP = LatencyStructure
+
 
 def device_info(device_type_id: Optional[ObjectId], asset_tag: int) -> dict:
     """Builds the stable ``devices`` collection document (identity only).
@@ -81,21 +86,21 @@ def device_info(device_type_id: Optional[ObjectId], asset_tag: int) -> dict:
     return doc
 
 
-
-def device_types(name: str, protocols_supported: list[str]) -> dict:
+def device_types(name: str, protocols_supported: list[str]):
     """Builds a device-type document with name and supported protocols.
 
     Args:
         name: Display name of the device type.
-        protocols_supported: Protocol identifiers (e.g. ``"ICMP"``); shallow-copied into the returned dict.
+        protocols_supported: List of protocol identifiers (e.g. "ICMP"); copied into the doc.
 
     Returns:
-        Dict with keys ``name`` and ``protocols_supported``.
+        Dict with "name" and "protocols_supported".
     """
     return {
         "name": name,
         "protocols_supported": list(protocols_supported),
     }
+
 
 def device_configuration(
     device_id: Optional[ObjectId],
