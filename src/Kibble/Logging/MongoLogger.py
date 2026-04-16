@@ -11,11 +11,11 @@ from bson import ObjectId
 
 from Kibble.Logging import Logger, LogLevel
 from Kibble.Logging.EventSchema import device_types, EVENT_SCHEMA_VERSION
+from Kibble.Retrieval.DeviceRetriever import INTERFACE_CONFIGURATIONS_COLLECTION
 
 EVENTS_COLLECTION = "timeseries_events"
 DEVICES_COLLECTION = "devices"
 DEVICE_TYPES_COLLECTION = "device_types"
-DEVICE_CONFIGURATIONS_COLLECTION = "device_configurations"
 
 
 class MongoLogger(Logger):
@@ -48,7 +48,7 @@ class MongoLogger(Logger):
         self.device_types_collection = self.db[DEVICE_TYPES_COLLECTION]
 
     def _get_device_id(self, endpoint_ip: str) -> Optional[ObjectId]:
-        doc = self.db[DEVICE_CONFIGURATIONS_COLLECTION].find_one(
+        doc = self.db[INTERFACE_CONFIGURATIONS_COLLECTION].find_one(
             {"ip_address": endpoint_ip},
             sort=[("applied_date", -1)],
             projection={"device_id": 1},
@@ -56,10 +56,10 @@ class MongoLogger(Logger):
         return doc["device_id"] if doc else None
 
     def _get_device_ids(self, endpoint_ips: list[str]) -> dict[str, ObjectId]:
-        """Map endpoint IP -> device _id using latest device_configuration rows."""
+        """Map endpoint IP -> device _id using latest interface_configuration rows."""
         if not endpoint_ips:
             return {}
-        coll = self.db[DEVICE_CONFIGURATIONS_COLLECTION]
+        coll = self.db[INTERFACE_CONFIGURATIONS_COLLECTION]
         out: dict[str, ObjectId] = {}
         for ip in endpoint_ips:
             doc = coll.find_one(

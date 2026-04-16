@@ -9,7 +9,10 @@ from Kibble.Logging import LogLevel
 EVENT_SCHEMA_VERSION = 1
 
 # Bump when device_configuration document shape changes (device_configurations collection).
-DEVICE_CONFIGURATION_SCHEMA_VERSION = 1
+DEVICE_CONFIGURATION_SCHEMA_VERSION = 2
+
+# Bump when interface_configuration document shape changes (interface_configurations collection).
+INTERFACE_CONFIGURATION_SCHEMA_VERSION = 1
 
 # Event types for endpoint status (fixed set for queries/dashboards; aligns with observability conventions).
 EVENT_TYPE_ENDPOINT_UP = "endpoint_up"
@@ -56,7 +59,8 @@ def ICMP(status_data: dict, severity: LogLevel = LogLevel.CRITICAL, device_id: O
 def device_info(device_type_id: Optional[ObjectId], asset_tag: int) -> dict:
     """Builds the stable ``devices`` collection document (identity only).
 
-    MongoDB adds ``_id``. Do not store IP/hostname/MAC here—use ``device_configuration`` for that.
+    MongoDB adds ``_id``. Do not store IP/hostname/MAC here—use ``interface_configuration`` rows
+    referenced from ``device_configuration``.
 
     Args:
         device_type_id: Device type ObjectId; required.
@@ -93,46 +97,118 @@ def device_types(name: str, protocols_supported: list[str]) -> dict:
         "protocols_supported": list(protocols_supported),
     }
 
+# def device_configuration(
+#     device_id: Optional[ObjectId],
+#     ip_address: str,
+#     subnet_mask: str,
+#     gateway: str,
+#     default_gateway: str,
+#     hostname: str,
+#     mac_address: str,
+#     applied_date: datetime.datetime,
+# ) -> dict:
+#     """Builds a device-configuration document for fields that change over time.
+
+#     Use this for mutable network and host identity (IP, routing, hostname, MAC)
+#     separate from stable device metadata (e.g. ``device_info``).
+
+#     Args:
+#         device_id: Device ObjectId; required.
+#         ip_address: Current IPv4/IPv6 address.
+#         subnet_mask: Subnet mask for the interface.
+#         gateway: Gateway for the subnet/route.
+#         default_gateway: System default gateway.
+#         hostname: Resolved or configured hostname.
+#         mac_address: Interface MAC address.
+#         applied_date: When this configuration snapshot was observed or applied (timezone-aware recommended).
+
+#     Returns:
+#         Dict with ``schema_version`` (``DEVICE_CONFIGURATION_SCHEMA_VERSION``), ``device_id``,
+#         network fields, hostname, mac_address, and ``applied_date``.
+
+#     Raises:
+#         ValueError: If device_id is None.
+#     """
+#     if device_id is None:
+#         raise ValueError("device_id is required")
+#     doc: dict = {
+#         "schema_version": DEVICE_CONFIGURATION_SCHEMA_VERSION,
+#         "device_id": device_id,
+#         "ip_address": ip_address,
+#         "subnet_mask": subnet_mask,
+#         "gateway": gateway,
+#         "default_gateway": default_gateway,
+#         "hostname": hostname,
+#         "mac_address": mac_address,
+#         "applied_date": applied_date,
+#     }
+#     return doc
+
 def device_configuration(
     device_id: Optional[ObjectId],
+    interfaces: list[ObjectId],
+    applied_date: datetime.datetime,
+) -> dict:
+    """Builds a device-configuration snapshot: which interface rows apply at ``applied_date``.
+
+    Per-interface IP/MAC/hostname live in ``interface_configurations``; this document only
+    references them by ``_id`` (see ``interface_configuration``).
+
+    Args:
+        device_id: Device ObjectId; required.
+        interfaces: Interface document ObjectIds (non-empty after inserts).
+        applied_date: When this snapshot was observed or applied (timezone-aware recommended).
+
+    Returns:
+        Dict with ``schema_version``, ``device_id``, ``interfaces``, ``applied_date``.
+
+    Raises:
+        ValueError: If ``device_id`` is None or ``interfaces`` is empty.
+    """
+    if device_id is None:
+        raise ValueError("device_id is required")
+    if not interfaces:
+        raise ValueError("interfaces must be non-empty")
+    doc: dict = {
+        "schema_version": DEVICE_CONFIGURATION_SCHEMA_VERSION,
+        "device_id": device_id,
+        "interfaces": list(interfaces),
+        "applied_date": applied_date,
+    }
+    return doc
+
+
+def interface_configuration(
+    device_id: ObjectId,
+    interface_name: str,
     ip_address: str,
     subnet_mask: str,
-    gateway: str,
     default_gateway: str,
     hostname: str,
     mac_address: str,
     applied_date: datetime.datetime,
 ) -> dict:
-    """Builds a device-configuration document for fields that change over time.
-
-    Use this for mutable network and host identity (IP, routing, hostname, MAC)
-    separate from stable device metadata (e.g. ``device_info``).
+    """Builds one row in ``interface_configurations`` (mutable network identity per interface).
 
     Args:
-        device_id: Device ObjectId; required.
-        ip_address: Current IPv4/IPv6 address.
+        device_id: Owning device ``_id``.
+        interface_name: Interface key (e.g. ``\"default\"`` for the primary row from scans).
+        ip_address: Current IPv4/IPv6 address (may be empty when only hostname is known).
         subnet_mask: Subnet mask for the interface.
-        gateway: Gateway for the subnet/route.
-        default_gateway: System default gateway.
+        default_gateway: Default gateway for this interface.
         hostname: Resolved or configured hostname.
         mac_address: Interface MAC address.
-        applied_date: When this configuration snapshot was observed or applied (timezone-aware recommended).
+        applied_date: When this snapshot was observed (used for history and IP→device resolution).
 
     Returns:
-        Dict with ``schema_version`` (``DEVICE_CONFIGURATION_SCHEMA_VERSION``), ``device_id``,
-        network fields, hostname, mac_address, and ``applied_date``.
-
-    Raises:
-        ValueError: If device_id is None.
+        Dict with ``schema_version``, ``device_id``, interface fields, and ``applied_date``.
     """
-    if device_id is None:
-        raise ValueError("device_id is required")
     doc: dict = {
-        "schema_version": DEVICE_CONFIGURATION_SCHEMA_VERSION,
+        "schema_version": INTERFACE_CONFIGURATION_SCHEMA_VERSION,
         "device_id": device_id,
+        "interface_name": interface_name,
         "ip_address": ip_address,
         "subnet_mask": subnet_mask,
-        "gateway": gateway,
         "default_gateway": default_gateway,
         "hostname": hostname,
         "mac_address": mac_address,

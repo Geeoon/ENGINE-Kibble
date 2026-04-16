@@ -7,11 +7,16 @@ from typing import Optional, Union
 from bson import ObjectId
 from pymongo import MongoClient
 
-from Kibble.Logging.EventSchema import DEVICE_CONFIGURATION_SCHEMA_VERSION, device_types
+from Kibble.Logging.EventSchema import (
+    DEVICE_CONFIGURATION_SCHEMA_VERSION,
+    INTERFACE_CONFIGURATION_SCHEMA_VERSION,
+    device_types,
+)
 
 DEVICES_COLLECTION = "devices"
 DEVICE_TYPES_COLLECTION = "device_types"
 DEVICE_CONFIGURATIONS_COLLECTION = "device_configurations"
+INTERFACE_CONFIGURATIONS_COLLECTION = "interface_configurations"
 
 
 class DeviceRetriever:
@@ -49,13 +54,20 @@ class DeviceRetriever:
         self.device_configurations_collection.create_index(
             [("device_id", 1), ("applied_date", -1)]
         )
-        self.device_configurations_collection.create_index(
+
+        if INTERFACE_CONFIGURATIONS_COLLECTION not in self.db.list_collection_names():
+            self.db.create_collection(INTERFACE_CONFIGURATIONS_COLLECTION)
+        self.interface_configurations_collection = self.db[INTERFACE_CONFIGURATIONS_COLLECTION]
+        self.interface_configurations_collection.create_index(
+            [("device_id", 1), ("applied_date", -1)]
+        )
+        self.interface_configurations_collection.create_index(
             [("ip_address", 1), ("applied_date", -1)]
         )
 
     def get_device_id(self, endpoint_ip: str) -> Optional[ObjectId]:
-        """Resolve device ``_id`` from the newest config whose ``ip_address`` matches."""
-        doc = self.device_configurations_collection.find_one(
+        """Resolve device ``_id`` from the newest interface row whose ``ip_address`` matches."""
+        doc = self.interface_configurations_collection.find_one(
             {"ip_address": endpoint_ip},
             sort=[("applied_date", -1)],
             projection={"device_id": 1},
@@ -111,6 +123,24 @@ class DeviceRetriever:
         ret = self.device_configurations_collection.insert_one(doc)
         return ret.inserted_id
 
+    def insert_interface_configuration(self, doc: dict) -> ObjectId:
+        """Insert a document from ``EventSchema.interface_configuration`` (enforces ``schema_version``)."""
+        if doc.get("schema_version") != INTERFACE_CONFIGURATION_SCHEMA_VERSION:
+            raise ValueError(
+                f"interface_configuration schema_version must be {INTERFACE_CONFIGURATION_SCHEMA_VERSION}, "
+                f"got {doc.get('schema_version')!r}; build docs with EventSchema.interface_configuration"
+            )
+        ret = self.interface_configurations_collection.insert_one(doc)
+        return ret.inserted_id
+
+    def get_interface_documents_ordered(self, interface_ids: list[ObjectId]) -> list[dict]:
+        """Return interface rows for ``interface_ids``, in the same order as the id list."""
+        if not interface_ids:
+            return []
+        cursor = self.interface_configurations_collection.find({"_id": {"$in": interface_ids}})
+        by_id = {d["_id"]: d for d in cursor}
+        return [by_id[i] for i in interface_ids if i in by_id]
+
     def get_latest_device_configuration(self, device_id: ObjectId) -> Optional[dict]:
         """Newest configuration row for this device (by ``applied_date``), or None."""
         return self.device_configurations_collection.find_one(
@@ -125,6 +155,19 @@ class DeviceRetriever:
         if limit < 1:
             return []
         cursor = self.device_configurations_collection.find(
+            {"device_id": device_id},
+            sort=[("applied_date", -1)],
+            limit=limit,
+        )
+        return list(cursor)
+
+    def get_interface_configuration_history(
+        self, device_id: ObjectId, *, limit: int = 200
+    ) -> list[dict]:
+        """Interface configuration snapshots for a device, newest ``applied_date`` first."""
+        if limit < 1:
+            return []
+        cursor = self.interface_configurations_collection.find(
             {"device_id": device_id},
             sort=[("applied_date", -1)],
             limit=limit,

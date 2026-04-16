@@ -12,11 +12,17 @@ from bson import ObjectId
 from pymongo import MongoClient
 
 from Kibble.Logging import LogLevel, ICMP
-from Kibble.Logging.EventSchema import device_configuration
+from Kibble.Logging.EventSchema import device_configuration, interface_configuration
 from Kibble.Monitoring import StatusMonitor
 from Kibble.Alerting import Alert
 from Kibble.Detecting import Detector, LatencyDetector
-from Kibble.Retrieval import DEVICE_CONFIGURATIONS_COLLECTION, DeviceRetriever
+from Kibble.Retrieval import (
+    DEVICE_CONFIGURATIONS_COLLECTION,
+    INTERFACE_CONFIGURATIONS_COLLECTION,
+    DeviceRetriever,
+)
+
+DEFAULT_MONITOR_INTERFACE_NAME = "default"
 
 
 class Kibble:
@@ -148,25 +154,34 @@ class Kibble:
             pass
 
     @staticmethod
-    def _device_configuration_fingerprint(cfg: dict) -> tuple[str, ...]:
-        """Fields that define a distinct device_configuration snapshot (excludes schema_version, applied_date, _id)."""
+    def _interface_row_fingerprint(iface: dict) -> tuple[str, ...]:
+        """Stable tuple for one interface row (excludes schema_version, applied_date, _id, device_id)."""
         return (
-            str(cfg.get("ip_address") or ""),
-            str(cfg.get("hostname") or ""),
-            str(cfg.get("mac_address") or ""),
-            str(cfg.get("subnet_mask") or ""),
-            str(cfg.get("gateway") or ""),
-            str(cfg.get("default_gateway") or ""),
+            str(iface.get("interface_name") or ""),
+            str(iface.get("ip_address") or ""),
+            str(iface.get("hostname") or ""),
+            str(iface.get("mac_address") or ""),
+            str(iface.get("subnet_mask") or ""),
+            str(iface.get("default_gateway") or ""),
         )
 
+    def _primary_interface_from_device_configuration(self, device_cfg: dict) -> Optional[dict]:
+        ids = device_cfg.get("interfaces") or []
+        if not ids:
+            return None
+        rows = self.device_retriever.get_interface_documents_ordered(ids)
+        for row in rows:
+            if row.get("interface_name") == DEFAULT_MONITOR_INTERFACE_NAME:
+                return row
+        return rows[0] if rows else None
+
     def _record_device_configuration_if_changed(self, id_str: str, new_device: dict) -> None:
-        """Insert device_configuration when in-memory device row changed and DB latest row differs.
+        """Insert interface + device_configuration rows when the primary interface identity changed.
 
         Subnet mask and gateways are not sourced yet; stored as empty strings until a probe exists.
         """
         # TODO: populate from SNMP/agent when available
         subnet_mask = ""
-        gateway = ""
         default_gateway = ""
 
         ip_address = str(new_device.get("ip") or "")
@@ -174,30 +189,35 @@ class Kibble:
         mac_address = str(new_device.get("mac") or "")
 
         oid = ObjectId(id_str)
-        proposed = (
-            ip_address,
-            hostname,
-            mac_address,
-            subnet_mask,
-            gateway,
-            default_gateway,
-        )
+        proposed_iface = {
+            "interface_name": DEFAULT_MONITOR_INTERFACE_NAME,
+            "ip_address": ip_address,
+            "hostname": hostname,
+            "mac_address": mac_address,
+            "subnet_mask": subnet_mask,
+            "default_gateway": default_gateway,
+        }
+        proposed = self._interface_row_fingerprint(proposed_iface)
 
         latest = self.device_retriever.get_latest_device_configuration(oid)
-        if latest is not None and self._device_configuration_fingerprint(latest) == proposed:
-            return
+        if latest is not None:
+            primary = self._primary_interface_from_device_configuration(latest)
+            if primary is not None and self._interface_row_fingerprint(primary) == proposed:
+                return
 
         applied_date = datetime.datetime.now(datetime.timezone.utc)
-        doc = device_configuration(
+        iface_doc = interface_configuration(
             oid,
+            DEFAULT_MONITOR_INTERFACE_NAME,
             ip_address,
             subnet_mask,
-            gateway,
             default_gateway,
             hostname,
             mac_address,
             applied_date,
         )
+        iface_id = self.device_retriever.insert_interface_configuration(iface_doc)
+        doc = device_configuration(oid, [iface_id], applied_date)
         self.device_retriever.insert_device_configuration(doc)
 
     def _get_devices(self):
@@ -239,12 +259,54 @@ class Kibble:
                     }
                 },
                 {
+                    "$lookup": {
+                        "from": INTERFACE_CONFIGURATIONS_COLLECTION,
+                        "let": {
+                            "iface_ids": {"$ifNull": ["$_cfg.interfaces", []]},
+                        },
+                        "pipeline": [
+                            {
+                                "$match": {
+                                    "$expr": {"$in": ["$_id", "$$iface_ids"]},
+                                }
+                            },
+                        ],
+                        "as": "iface_docs",
+                    }
+                },
+                {
+                    "$addFields": {
+                        "_iface": {
+                            "$ifNull": [
+                                {
+                                    "$arrayElemAt": [
+                                        {
+                                            "$filter": {
+                                                "input": {"$ifNull": ["$iface_docs", []]},
+                                                "as": "i",
+                                                "cond": {
+                                                    "$eq": [
+                                                        "$$i.interface_name",
+                                                        DEFAULT_MONITOR_INTERFACE_NAME,
+                                                    ]
+                                                },
+                                            }
+                                        },
+                                        0,
+                                    ]
+                                },
+                                {"$arrayElemAt": [{"$ifNull": ["$iface_docs", []]}, 0]},
+                            ]
+                        },
+                    }
+                },
+                {
                     "$project": {
                         "_id": 1,
                         "asset_tag": 1,
-                        "device_ip": "$_cfg.ip_address",
-                        "hostname": "$_cfg.hostname",
-                        "mac_address": "$_cfg.mac_address",
+                        "device_ip": "$_iface.ip_address",
+                        "hostname": "$_iface.hostname",
+                        "mac_address": "$_iface.mac_address",
                         "device_type.protocols_supported": 1,
                     }
                 },

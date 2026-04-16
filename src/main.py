@@ -5,7 +5,7 @@ import datetime
 from Kibble import Kibble
 from Kibble.Alerting import EmailAlert, ScreenAlert
 from Kibble.Logging import MongoHandler
-from Kibble.Logging.EventSchema import device_configuration
+from Kibble.Logging.EventSchema import device_configuration, interface_configuration
 from Kibble.Monitoring.Active import ICMPMonitor
 import logging
 
@@ -74,20 +74,22 @@ def _seed_device(asset_tag: int, ip_address: str, hostname: str, mac_address: st
     oid = dev["_id"]
     if _db["device_configurations"].find_one({"device_id": oid}, projection={"_id": 1}) is None:
         applied = datetime.datetime.now(datetime.timezone.utc)
-        doc = device_configuration(
+        iface_doc = interface_configuration(
             oid,
+            "default",
             ip_address,
-            "",
             "",
             "",
             hostname,
             mac_address,
             applied,
         )
+        iface_id = _retriever.insert_interface_configuration(iface_doc)
+        doc = device_configuration(oid, [iface_id], applied)
         _retriever.insert_device_configuration(doc)
 
 
-# testing only: devices = identity only; network identity lives in device_configurations.
+# testing only: network identity lives in interface_configurations.
 _seed_device(101, "127.0.0.1", "")
 _seed_device(102, "", "doesnotexist.internal")
 _seed_device(103, "192.67.67.67", "")
