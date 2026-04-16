@@ -16,7 +16,7 @@ class ICMPMonitor(StatusMonitor):
     Monitors the status of endpoints using ICMP echo request/reply 
     """
 
-    def __init__(self, endpoints: list[str], timeout: int=10, workers: int=5):
+    def __init__(self, endpoints: list[str]=[], timeout: int=10, workers: int=5):
         """
         Initializes the ICMPMonitor
         

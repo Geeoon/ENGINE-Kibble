@@ -1,7 +1,7 @@
 # Main python script
+import datetime
 import logging
 import time
-import datetime
 
 from pymongo import MongoClient
 
@@ -164,7 +164,6 @@ for dev in db["devices"].find({}, {"_id": 1, "device_ip": 1, "hostname": 1, "mac
     kibble.device_retriever.insert_device_configuration(doc)
 
 kibble._get_devices()
-
 tries = 1
 last_fail = 0
 while tries < 25:

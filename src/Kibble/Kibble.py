@@ -69,7 +69,6 @@ class Kibble:
         self.default_device_type_id = self.device_retriever.ensure_device_type(
             default_device_type, ["ICMP"]
         )
-
         # Collections
         self.devices_collection = self.device_retriever.devices_collection
 
@@ -83,48 +82,39 @@ class Kibble:
         """
         Starts the Kibble system
         """
-        try:
+        asyncio.run(self._rescan())
+        self._last_device_log_time = time.time()
+
+        while True:
+            start_time = time.time()
             asyncio.run(self._rescan())
-            self._last_device_log_time = time.time()
+            logs, levels = self._get_logs()
+            end_time = time.time()
+            behind = (end_time - start_time) > self.interval
 
-            while True:
-                start_time = time.time()
-                asyncio.run(self._rescan())
-                logs, levels = self._get_logs()
-                end_time = time.time()
-                behind = (end_time - start_time) > self.interval
+            if behind:
+                self.maintainance_logger.warning(
+                    "Kibble service is lagging behind scanning interval"
+                )
 
-                if behind:
-                    self.maintainance_logger.warning(
-                        "Kibble service is lagging behind scanning interval"
-                    )
+            self._send_to_loggers(logs, levels)
 
-                self._send_to_loggers(logs, levels)
+            # send alerts if needed
+            alerts = self.detector.get_alerts()
+            for endpoint in alerts.keys():
+                self.maintainance_logger.info(f"Sending alert(s)")
+                for alerter in self.alerters:
+                    alerter.alert(f"ALERT FOR {endpoint}", alerts[endpoint]["level"])
 
-                # send alerts if needed
-                alerts = self.detector.get_alerts()
-                for endpoint in alerts.keys():
-                    self.maintainance_logger.info(f"Sending alert(s)")
-                    for alerter in self.alerters:
-                        alerter.alert(
-                            f"ALERT FOR {endpoint}", alerts[endpoint]["level"]
-                        )
-
-                # check devices again
-                self._get_devices()
-                # wait until next interval
-                if not behind:
-                    sleep_time = self.interval - end_time + start_time
-                    self.maintainance_logger.debug(
-                        f"Waiting {round(sleep_time, 1)} seconds before scanning again"
-                    )
-                    time.sleep(sleep_time)
-
-        except KeyboardInterrupt:
-            self.end("user ended (KeyboardInterrupt)")
-        except Exception as e:
-            self.end(str(e))
-            raise
+            # check devices again
+            self._get_devices()
+            # wait until next interval
+            if not behind:
+                sleep_time = self.interval - end_time + start_time
+                self.maintainance_logger.debug(
+                    f"Waiting {round(sleep_time, 1)} seconds before scanning again"
+                )
+                time.sleep(sleep_time)
 
     async def _rescan(self):
         self.maintainance_logger.debug("Starting a network scan")

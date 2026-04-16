@@ -10,7 +10,7 @@ class StatusMonitor(ABC):
     """
     Base class that monitors that status of a computer
     """
-    def __init__(self, endpoints: list[dict], timeout: int=10):
+    def __init__(self, endpoints: list[dict]=[], timeout: int=10):
         """
         Initializes the status monitor
         
