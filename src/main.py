@@ -90,61 +90,51 @@ except Exception as e:
 # testing only: add devices to db, if they don't exist, for testing.
 # testing only: add scpi device type to db
 scpi_id = kibble.device_retriever.ensure_device_type("device 2", ["SCPI"])
-mongo_status_handler.db["devices"].update_one(
-    {"ip": "127.0.0.1"},
-    {
-        "$setOnInsert": {
-            "device_ip": "127.0.0.1",
-            "device_type_id": kibble.default_device_type_id,
-        }
-    },
-    upsert=True,
-)
-mongo_status_handler.db["devices"].update_one(
-    {"hostname": "doesnotexist.internal"},
-    {
-        "$setOnInsert": {
-            "hostname": "doesnotexist.internal",
-            "device_type_id": kibble.default_device_type_id,
-        }
-    },
-    upsert=True,
-)
-mongo_status_handler.db["devices"].update_one(
-    {"device_ip": "192.67.67.67"},
-    {
-        "$setOnInsert": {
-            "device_ip": "192.67.67.67",
-            "device_type_id": kibble.default_device_type_id,
-        }
-    },
-    upsert=True,
-)
+
+# devices schema: identity only (asset_tag + device_type_id)
+seed_devices = [
+    {"asset_tag": 1001, "device_type_id": kibble.default_device_type_id, "ip": "127.0.0.1", "hostname": "", "mac": ""},
+    {"asset_tag": 1002, "device_type_id": kibble.default_device_type_id, "ip": "", "hostname": "doesnotexist.internal", "mac": ""},
+    {"asset_tag": 1003, "device_type_id": kibble.default_device_type_id, "ip": "192.67.67.67", "hostname": "", "mac": ""},
+]
 for id in range(1, 6):
-    mongo_status_handler.db["devices"].update_one(
-        {"hostname": f"simulator-secondary-{id}"},
+    seed_devices.append(
         {
-            "$setOnInsert": {
-                "hostname": f"simulator-secondary-{id}",
-                "device_type_id": kibble.default_device_type_id,
-            }
-        },
-        upsert=True,
+            "asset_tag": 2000 + id,
+            "device_type_id": kibble.default_device_type_id,
+            "ip": "",
+            "hostname": f"simulator-secondary-{id}",
+            "mac": "",
+        }
     )
-    mongo_status_handler.db["devices"].update_one(
-        {"hostname": f"simulator-scpi-{id}"},
+    seed_devices.append(
+        {
+            "asset_tag": 3000 + id,
+            "device_type_id": scpi_id,
+            "ip": "",
+            "hostname": f"simulator-scpi-{id}",
+            "mac": "",
+        }
+    )
+
+db = mongo_status_handler.db
+for seed in seed_devices:
+    db["devices"].update_one(
+        {"asset_tag": seed["asset_tag"]},
         {
             "$setOnInsert": {
-                "hostname": f"simulator-scpi-{id}",
-                "device_type_id": scpi_id,
+                "asset_tag": seed["asset_tag"],
+                "device_type_id": seed["device_type_id"],
             }
         },
         upsert=True,
     )
 
-# Interface-based device resolution needs initial snapshots for seeded devices.
-db = mongo_status_handler.db
-for dev in db["devices"].find({}, {"_id": 1, "device_ip": 1, "hostname": 1, "mac_address": 1}):
+# Initialize first configuration snapshots for seeded devices.
+for seed in seed_devices:
+    dev = db["devices"].find_one({"asset_tag": seed["asset_tag"]}, {"_id": 1})
+    if dev is None:
+        continue
     oid = dev["_id"]
     if db["device_configurations"].find_one({"device_id": oid}, projection={"_id": 1}) is not None:
         continue
@@ -152,11 +142,11 @@ for dev in db["devices"].find({}, {"_id": 1, "device_ip": 1, "hostname": 1, "mac
     iface_doc = interface_configuration(
         oid,
         "default",
-        str(dev.get("device_ip") or ""),
+        str(seed.get("ip") or ""),
         "",
         "",
-        str(dev.get("hostname") or ""),
-        str(dev.get("mac_address") or ""),
+        str(seed.get("hostname") or ""),
+        str(seed.get("mac") or ""),
         applied_date,
     )
     iface_id = kibble.device_retriever.insert_interface_configuration(iface_doc)
