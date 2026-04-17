@@ -11,7 +11,7 @@ from Kibble.Logging import MongoHandler
 from Kibble.Logging.EventSchema import device_configuration, interface_configuration
 from Kibble.Monitoring.Active import ICMPMonitor, SCPIMonitor
 
-formatter = logging.Formatter("%(asctime)s %(levelname)s %(message)s")
+formatter = logging.Formatter('%(asctime)s %(levelname)s %(message)s')
 
 # logger for maintainance
 maintainance_logger = logging.getLogger("Kibble_Maintainance")
@@ -30,25 +30,16 @@ maintainance_logger.addHandler(screen_maintainance_handler)  # just for debuggin
 maintainance_logger.addHandler(file_maintainance_handler)  # keep a log of the program in case something goes wrong
 
 # set up MongoDB client
-mongo_host = "database.internal"
+mongo_host = 'database.internal'
 mongo_port = 27017
-mongo_user = "root"
-mongo_passwd = "password"
+mongo_user = 'root'
+mongo_passwd = 'password'
 
-mongo_client = None
 try:
-    mongo_client = MongoClient(
-        f"mongodb://{mongo_user}:{mongo_passwd}@{mongo_host}:{mongo_port}"
-    )
-    mongo_client.admin.command("ping")
+    mongo_client = MongoClient(f"mongodb://{mongo_user}:{mongo_passwd}@{mongo_host}:{mongo_port}")
+    mongo_client.admin.command('ping')
 except Exception as e:
-    maintainance_logger.critical(
-        f"Unable to connect to MongoDB: {str(e)}.  Events will only be maintained locally and the fallback list of devices will be used."
-    )
-
-if mongo_client is None:
-    maintainance_logger.critical("MongoDB client is not available; exiting.")
-    quit()
+    maintainance_logger.critical(f"Unable to connect to MongoDB: {str(e)}.  Events will only be maintained locally and the fallback list of devices will be used.")
 
 # main logger for status
 status_logger = logging.getLogger("Kibble_Status")
@@ -63,7 +54,7 @@ file_status_handler = logging.FileHandler("./kibble_status.log")
 file_status_handler.setLevel(logging.NOTSET)
 file_status_handler.setFormatter(formatter)
 # mongodb logging
-mongo_status_handler = MongoHandler(client=mongo_client)
+mongo_status_handler = MongoHandler("kibble", client=mongo_client)
 mongo_status_handler.setLevel(logging.NOTSET)
 
 # attach handlers
@@ -77,76 +68,70 @@ email_alert = EmailAlert()
 icmp_monitor = ICMPMonitor(endpoints=[], timeout=5)
 scpi_monitor = SCPIMonitor(endpoints=[], timeout=5)
 try:
-    kibble = Kibble(
-        client=mongo_client,
-        monitors=[icmp_monitor, scpi_monitor],
-        alerters=[screen_alert],
-        default_device_type=("device 1", ["ICMP"]),
-    )
+    kibble = Kibble(client=mongo_client, monitors=[icmp_monitor, scpi_monitor], alerters=[screen_alert], default_device_type=("device 1", ["ICMP"]))
 except Exception as e:
     maintainance_logger.critical(f"Failed to start Kibble: {str(e)}")
     quit()
-
+    
 # testing only: add devices to db, if they don't exist, for testing.
-# testing only: add scpi device type to db
-scpi_id = kibble.device_retriever.ensure_device_type("device 2", ["SCPI"])
-
-# devices schema: identity only (asset_tag + device_type_id)
+# Keep devices identity-only (asset_tag + device_type_id). Network identity is stored in configuration collections.
+scpi_id = kibble.device_retriever.ensure_device_type('device 2', ['SCPI'])
 seed_devices = [
-    {"asset_tag": 1001, "device_type_id": kibble.default_device_type_id, "ip": "127.0.0.1", "hostname": "", "mac": ""},
-    {"asset_tag": 1002, "device_type_id": kibble.default_device_type_id, "ip": "", "hostname": "doesnotexist.internal", "mac": ""},
-    {"asset_tag": 1003, "device_type_id": kibble.default_device_type_id, "ip": "192.67.67.67", "hostname": "", "mac": ""},
+    {'asset_tag': 1001, 'device_type_id': kibble.default_device_type_id, 'ip': '127.0.0.1', 'hostname': '', 'mac': ''},
+    {'asset_tag': 1002, 'device_type_id': kibble.default_device_type_id, 'ip': '', 'hostname': 'doesnotexist.internal', 'mac': ''},
+    {'asset_tag': 1003, 'device_type_id': kibble.default_device_type_id, 'ip': '192.67.67.67', 'hostname': '', 'mac': ''},
 ]
 for id in range(1, 6):
     seed_devices.append(
         {
-            "asset_tag": 2000 + id,
-            "device_type_id": kibble.default_device_type_id,
-            "ip": "",
-            "hostname": f"simulator-secondary-{id}",
-            "mac": "",
+            'asset_tag': 2000 + id,
+            'device_type_id': kibble.default_device_type_id,
+            'ip': '',
+            'hostname': f'simulator-secondary-{id}',
+            'mac': '',
         }
     )
     seed_devices.append(
         {
-            "asset_tag": 3000 + id,
-            "device_type_id": scpi_id,
-            "ip": "",
-            "hostname": f"simulator-scpi-{id}",
-            "mac": "",
+            'asset_tag': 3000 + id,
+            'device_type_id': scpi_id,
+            'ip': '',
+            'hostname': f'simulator-scpi-{id}',
+            'mac': '',
         }
     )
 
 db = mongo_status_handler.db
 for seed in seed_devices:
-    db["devices"].update_one(
-        {"asset_tag": seed["asset_tag"]},
+    db['devices'].update_one(
+        {'asset_tag': seed['asset_tag']},
         {
-            "$setOnInsert": {
-                "asset_tag": seed["asset_tag"],
-                "device_type_id": seed["device_type_id"],
+            '$setOnInsert': {
+                'asset_tag': seed['asset_tag'],
+                'device_type_id': seed['device_type_id'],
             }
         },
         upsert=True,
     )
 
-# Initialize first configuration snapshots for seeded devices.
+# Initialize one configuration snapshot per seeded device if none exists.
 for seed in seed_devices:
-    dev = db["devices"].find_one({"asset_tag": seed["asset_tag"]}, {"_id": 1})
+    dev = db['devices'].find_one({'asset_tag': seed['asset_tag']}, {'_id': 1})
     if dev is None:
         continue
-    oid = dev["_id"]
-    if db["device_configurations"].find_one({"device_id": oid}, projection={"_id": 1}) is not None:
+    oid = dev['_id']
+    if db['device_configurations'].find_one({'device_id': oid}, projection={'_id': 1}) is not None:
         continue
+
     applied_date = datetime.datetime.now(datetime.timezone.utc)
     iface_doc = interface_configuration(
         oid,
-        "default",
-        str(seed.get("ip") or ""),
-        "",
-        "",
-        str(seed.get("hostname") or ""),
-        str(seed.get("mac") or ""),
+        'default',
+        str(seed.get('ip') or ''),
+        '',
+        '',
+        str(seed.get('hostname') or ''),
+        str(seed.get('mac') or ''),
         applied_date,
     )
     iface_id = kibble.device_retriever.insert_interface_configuration(iface_doc)
@@ -154,6 +139,7 @@ for seed in seed_devices:
     kibble.device_retriever.insert_device_configuration(doc)
 
 kibble._get_devices()
+
 tries = 1
 last_fail = 0
 while tries < 25:
@@ -166,7 +152,5 @@ while tries < 25:
         if (time.time() - last_fail) > 300:  # if it's been more than 5 minutes since the last fail
             tries = 1  # reset
         last_fail = time.time()
-        maintainance_logger.critical(
-            f"Uncaught exception: {str(e)}.  Attemping to restart the service, try {tries}"
-        )
+        maintainance_logger.critical(f"Uncaught exception: {str(e)}.  Attemping to restart the service, try {tries}")
         tries += 1

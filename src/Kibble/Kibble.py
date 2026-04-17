@@ -18,7 +18,7 @@ from Kibble.Alerting import Alert
 from Kibble.Detecting import Detector, LatencyDetector
 from Kibble.Retrieval import DeviceRetriever
 
-DEFAULT_MONITOR_INTERFACE_NAME = "default"
+DEFAULT_MONITOR_INTERFACE_NAME = "default" # set for now, but should be configurable
 
 
 class Kibble:
@@ -65,10 +65,8 @@ class Kibble:
         self.detector = detector
         self.interval = interval
 
-        self.device_retriever = DeviceRetriever(client=client, db_name="kibble")
-        self.default_device_type_id = self.device_retriever.ensure_device_type(
-            default_device_type, ["ICMP"]
-        )
+        self.device_retriever = DeviceRetriever(client=client)
+        self.default_device_type_id = self.device_retriever.ensure_device_type(default_device_type, ['ICMP'])
         # Collections
         self.devices_collection = self.device_retriever.devices_collection
 
@@ -93,9 +91,7 @@ class Kibble:
             behind = (end_time - start_time) > self.interval
 
             if behind:
-                self.maintainance_logger.warning(
-                    "Kibble service is lagging behind scanning interval"
-                )
+                self.maintainance_logger.warning("Kibble service is lagging behind scanning interval")
 
             self._send_to_loggers(logs, levels)
 
@@ -104,16 +100,14 @@ class Kibble:
             for endpoint in alerts.keys():
                 self.maintainance_logger.info(f"Sending alert(s)")
                 for alerter in self.alerters:
-                    alerter.alert(f"ALERT FOR {endpoint}", alerts[endpoint]["level"])
+                    alerter.alert(f"ALERT FOR {endpoint}", alerts[endpoint]['level'])
 
             # check devices again
             self._get_devices()
             # wait until next interval
             if not behind:
                 sleep_time = self.interval - end_time + start_time
-                self.maintainance_logger.debug(
-                    f"Waiting {round(sleep_time, 1)} seconds before scanning again"
-                )
+                self.maintainance_logger.debug(f"Waiting {round(sleep_time, 1)} seconds before scanning again")
                 time.sleep(sleep_time)
 
     async def _rescan(self):
@@ -122,6 +116,7 @@ class Kibble:
         self.maintainance_logger.debug("Finished scanning network")
 
     @staticmethod
+    # Gets the device id for a log
     def _device_id_for_log(key: object) -> ObjectId:
         if isinstance(key, ObjectId):
             return key
@@ -136,15 +131,11 @@ class Kibble:
         for monitor in self.monitors:
             res = monitor.get_status()
             for key, log in res.items():
-                this_status = log["status"]
+                this_status = log['status']
                 if not this_status:
                     continue
                 level = self.detector.get_level(key, this_status)
-                logs.append(
-                    LatencyStructure(
-                        this_status, level, device_id=self._device_id_for_log(key)
-                    )
-                )
+                logs.append(LatencyStructure(this_status, level, device_id=key))
                 levels.append(level)
 
         return logs, levels
@@ -153,15 +144,13 @@ class Kibble:
         try:
             for log, level in zip(logs, levels):
                 self.maintainance_logger.debug("Sending logs")
-                self.logger.log(int(level), log, extra={"status": log})
+                self.logger.log(int(level), log, extra={ "status": log })
         except ValueError:
             # e.g. data/levels length mismatch; skip this logger and continue
             pass
 
-    def _primary_interface_fields_from_device_configuration(
-        self, device_cfg: dict
-    ) -> Optional[tuple[str, str, str, str, str]]:
-        """Return primary interface fields tuple from one device_configuration snapshot."""
+    def _primary_interface_fields_from_device_configuration(self, device_cfg: dict) -> Optional[tuple[str, str, str, str, str]]:
+        """Returns interface fields tuple from one device_configuration snapshot."""
         ids = device_cfg.get("interfaces") or []
         if not ids:
             return None
@@ -169,27 +158,22 @@ class Kibble:
         if not rows:
             return None
 
-        primary = next(
-            (
-                row
-                for row in rows
-                if row.get("interface_name") == DEFAULT_MONITOR_INTERFACE_NAME
-            ),
-            rows[0],
+        interface = next(
+            (row for row in rows if row.get("interface_name") == DEFAULT_MONITOR_INTERFACE_NAME),
+            rows[0]
         )
-
         return (
-            str(primary.get("ip_address") or ""),
-            str(primary.get("hostname") or ""),
-            str(primary.get("mac_address") or ""),
-            str(primary.get("subnet_mask") or ""),
-            str(primary.get("default_gateway") or ""),
+            str(interface.get("ip_address") or ""),
+            str(interface.get("hostname") or ""),
+            str(interface.get("mac_address") or ""),
+            str(interface.get("subnet_mask") or ""),
+            str(interface.get("default_gateway") or ""),
         )
 
     def _record_device_configuration_if_changed(self, id_str: str, new_device: dict) -> None:
-        """Insert interface + device_configuration rows when the primary interface identity changed.
+        """Insert interface and device_configuration rows when the primary interface identity changed.
 
-        Subnet mask and gateways are not sourced yet; stored as empty strings until a probe exists.
+        Subnet mask and gateways are not sourced yet, so they are stored as empty strings until a probe exists.
         """
         subnet_mask = ""
         default_gateway = ""
@@ -256,21 +240,14 @@ class Kibble:
                 )
 
         for id, device in self.devices.items():
-            protocols = device.get("protocols") or []
-            for protocol in protocols:
+            for protocol in device['protocols']:
                 found = False
                 for monitor in self.monitors:
                     if protocol == str(monitor):
-                        monitor.add_endpoint(additional=[device | {"id": id}])
+                        monitor.add_endpoint(additional=[device | {'id': id}])
                         found = True
                 if not found:
-                    self.maintainance_logger.error(
-                        f"{id} attempting to use unsupported protocol {protocol}"
-                    )
+                    self.maintainance_logger.error(f"{id} attempting to use unsupported protocol {protocol}")
 
     def end(self, msg: str = ""):
         self.maintainance_logger.debug(msg)
-
-    def _end(self, msg: str = ""):
-        """Backward-compatible alias for ``end``."""
-        self.end(msg)
