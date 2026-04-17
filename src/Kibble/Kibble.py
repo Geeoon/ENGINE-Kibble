@@ -3,16 +3,13 @@ Overall system implementation
 """
 
 import asyncio
-import datetime
 import logging
 import time
 from typing import Optional
 
-from bson import ObjectId
 from pymongo import MongoClient
 
 from Kibble.Logging import LogLevel, LatencyStructure
-from Kibble.Logging.EventSchema import device_configuration, interface_configuration
 from Kibble.Monitoring import StatusMonitor
 from Kibble.Alerting import Alert
 from Kibble.Detecting import Detector, LatencyDetector
@@ -115,15 +112,6 @@ class Kibble:
         await asyncio.gather(*[monitor.update_status() for monitor in self.monitors])
         self.maintainance_logger.debug("Finished scanning network")
 
-    @staticmethod
-    # Gets the device id for a log
-    def _device_id_for_log(key: object) -> ObjectId:
-        if isinstance(key, ObjectId):
-            return key
-        if isinstance(key, str) and ObjectId.is_valid(key):
-            return ObjectId(key)
-        raise ValueError(f"monitor status key must be a valid ObjectId string, got {key!r}")
-
     def _get_logs(self) -> tuple[list[dict], list[LogLevel]]:
         logs: list[dict] = []
         levels: list[LogLevel] = []
@@ -149,73 +137,9 @@ class Kibble:
             # e.g. data/levels length mismatch; skip this logger and continue
             pass
 
-    def _primary_interface_fields_from_device_configuration(self, device_cfg: dict) -> Optional[tuple[str, str, str, str, str]]:
-        """Returns interface fields tuple from one device_configuration snapshot."""
-        ids = device_cfg.get("interfaces") or []
-        if not ids:
-            return None
-        rows = self.device_retriever.get_interface_documents_ordered(ids)
-        if not rows:
-            return None
-
-        interface = next(
-            (row for row in rows if row.get("interface_name") == DEFAULT_MONITOR_INTERFACE_NAME),
-            rows[0]
-        )
-        return (
-            str(interface.get("ip_address") or ""),
-            str(interface.get("hostname") or ""),
-            str(interface.get("mac_address") or ""),
-            str(interface.get("subnet_mask") or ""),
-            str(interface.get("default_gateway") or ""),
-        )
-
-    def _record_device_configuration_if_changed(self, id_str: str, new_device: dict) -> None:
-        """Insert interface and device_configuration rows when the primary interface identity changed.
-
-        Subnet mask and gateways are not sourced yet, so they are stored as empty strings until a probe exists.
-        """
-        subnet_mask = ""
-        default_gateway = ""
-        ip_address = str(new_device.get("ip") or "")
-        hostname = str(new_device.get("hostname") or "")
-        mac_address = str(new_device.get("mac") or "")
-        proposed_primary = (
-            ip_address,
-            hostname,
-            mac_address,
-            subnet_mask,
-            default_gateway,
-        )
-
-        oid = ObjectId(id_str)
-        latest = self.device_retriever.get_latest_device_configuration(oid)
-        if latest is not None:
-            latest_primary = self._primary_interface_fields_from_device_configuration(
-                latest
-            )
-            if latest_primary is not None and latest_primary == proposed_primary:
-                return
-
-        applied_date = datetime.datetime.now(datetime.timezone.utc)
-        interface_doc = interface_configuration(
-            oid,
-            DEFAULT_MONITOR_INTERFACE_NAME,
-            ip_address,
-            subnet_mask,
-            default_gateway,
-            hostname,
-            mac_address,
-            applied_date,
-        )
-        interface_id = self.device_retriever.insert_interface_configuration(interface_doc)
-        doc = device_configuration(oid, [interface_id], applied_date)
-        self.device_retriever.insert_device_configuration(doc)
-
     def _get_devices(self):
-        self.maintainance_logger.debug("Getting devices from database")
-
-        previous = dict(self.devices)
+ 
+        previous = dict(self.devices) # used to track changes in the devices configurations
         self.devices = self.device_retriever.get_devices(
             default_interface_name=DEFAULT_MONITOR_INTERFACE_NAME
         )
@@ -228,7 +152,11 @@ class Kibble:
                     self.maintainance_logger.info(
                         f"Updating device information for {device_id}"
                     )
-                self._record_device_configuration_if_changed(device_id, device)
+                self.device_retriever.record_device_configuration_if_changed(
+                    device_id,
+                    device,
+                    default_interface_name=DEFAULT_MONITOR_INTERFACE_NAME,
+                )
 
             if (
                 previous.get(device_id) != device
@@ -249,5 +177,5 @@ class Kibble:
                 if not found:
                     self.maintainance_logger.error(f"{id} attempting to use unsupported protocol {protocol}")
 
-    def end(self, msg: str = ""):
+    def end(self, msg: str=""):
         self.maintainance_logger.debug(msg)

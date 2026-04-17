@@ -4,6 +4,7 @@ Defines a device retriever
 
 import json
 import logging
+import datetime
 from typing import Optional, Union
 
 from bson import ObjectId
@@ -12,6 +13,8 @@ from pymongo import MongoClient
 from Kibble.Logging.EventSchema import (
     DEVICE_CONFIGURATION_SCHEMA_VERSION,
     INTERFACE_CONFIGURATION_SCHEMA_VERSION,
+    device_configuration,
+    interface_configuration,
     device_types,
 )
 
@@ -266,5 +269,81 @@ class DeviceRetriever:
             {"device_id": device_id},
             sort=[("applied_date", -1)],
         )
+
+    def _primary_interface_fields_from_device_configuration(
+        self,
+        device_cfg: dict,
+        default_interface_name: str = "default",
+    ) -> Optional[tuple[str, str, str, str, str]]:
+        """Returns primary interface fields tuple from one device_configuration snapshot."""
+        ids = device_cfg.get("interfaces") or []
+        if not ids:
+            return None
+        rows = self.get_interface_documents_ordered(ids)
+        if not rows:
+            return None
+
+        interface = next(
+            (
+                row
+                for row in rows
+                if row.get("interface_name") == default_interface_name
+            ),
+            rows[0],
+        )
+        return (
+            str(interface.get("ip_address") or ""),
+            str(interface.get("hostname") or ""),
+            str(interface.get("mac_address") or ""),
+            str(interface.get("subnet_mask") or ""),
+            str(interface.get("default_gateway") or ""),
+        )
+
+    def record_device_configuration_if_changed(
+        self,
+        device_id: str | ObjectId,
+        new_device: dict,
+        default_interface_name: str = "default",
+    ) -> None:
+        """Insert interface + device_configuration rows when primary interface identity changed."""
+        oid = device_id if isinstance(device_id, ObjectId) else ObjectId(device_id)
+
+        subnet_mask = ""
+        default_gateway = ""
+        ip_address = str(new_device.get("ip") or "")
+        hostname = str(new_device.get("hostname") or "")
+        mac_address = str(new_device.get("mac") or "")
+        proposed_primary = (
+            ip_address,
+            hostname,
+            mac_address,
+            subnet_mask,
+            default_gateway,
+        )
+
+        latest = self.get_latest_device_configuration(oid)
+        if latest is not None:
+            latest_primary = self._primary_interface_fields_from_device_configuration(
+                latest,
+                default_interface_name=default_interface_name,
+            )
+            if latest_primary is not None and latest_primary == proposed_primary:
+                return
+
+        applied_date = datetime.datetime.now(datetime.timezone.utc)
+        interface_doc = interface_configuration(
+            oid,
+            default_interface_name,
+            ip_address,
+            subnet_mask,
+            default_gateway,
+            hostname,
+            mac_address,
+            applied_date,
+        )
+        interface_id = self.insert_interface_configuration(interface_doc)
+        doc = device_configuration(oid, [interface_id], applied_date)
+        self.insert_device_configuration(doc)
+
     def close(self) -> None:
         self.client.close()
