@@ -25,7 +25,7 @@ INTERFACE_CONFIGURATIONS_COLLECTION = "interface_configurations"
 
 
 class DeviceRetriever:
-    def __init__(self, client: MongoClient, db_name: str = 'kibble'):
+    def __init__(self, client: MongoClient, db_name: str='kibble'):
         """
         Initializes a device retriever getting devices and device types from MongoDB
 
@@ -51,7 +51,6 @@ class DeviceRetriever:
             # pull endpoints from file
             self.maintainance_logger.info("Adding devices from files")
             device_types = []
-            device_types = []
             try:
                 with open('./device_types.json') as f:
                     device_types = json.load(f)
@@ -61,10 +60,10 @@ class DeviceRetriever:
                 self._fallback_device_id = device_types[0]['_id']
                 device_types_dict = dict((d_type['_id'], d_type['protocols_supported']) for d_type in device_types)
                 try:
-                    with open("./devices.json") as f:
+                    with open('./devices.json') as f:
                         devices = json.load(f)
-                except FileNotFoundError:
-                    self.maintainance_logger.critical("Unable to open devices.json")
+                except FileNotFoundError as e:
+                    self.maintainance_logger.critical(f"Unable to open devices.json: {str(e)}")
                 for device in devices:
                     self.maintainance_logger.info(f"Adding device from file: {device['_id']}")
                     self._devices[device['_id']] = {
@@ -270,18 +269,12 @@ class DeviceRetriever:
             sort=[("applied_date", -1)],
         )
 
-    def _primary_interface_fields_from_device_configuration(
-        self,
-        device_cfg: dict,
-        default_interface_name: str = "default",
-    ) -> Optional[tuple[str, str, str, str, str]]:
+    def _primary_interface_fields_from_device_configuration(self, device_cfg: dict, default_interface_name: str = "default") -> Optional[tuple[str, str, str, str, str]]:
         """Returns primary interface fields tuple from one device_configuration snapshot."""
         ids = device_cfg.get("interfaces") or []
-        if not ids:
-            return None
+        if not ids: return None
         rows = self.get_interface_documents_ordered(ids)
-        if not rows:
-            return None
+        if not rows: return None
 
         interface = next(
             (
@@ -299,12 +292,7 @@ class DeviceRetriever:
             str(interface.get("default_gateway") or ""),
         )
 
-    def record_device_configuration_if_changed(
-        self,
-        device_id: str | ObjectId,
-        new_device: dict,
-        default_interface_name: str = "default",
-    ) -> None:
+    def record_device_configuration_if_changed(self, device_id: str | ObjectId, new_device: dict, default_interface_name: str = "default") -> None:
         """Insert interface + device_configuration rows when primary interface identity changed."""
         oid = device_id if isinstance(device_id, ObjectId) else ObjectId(device_id)
 

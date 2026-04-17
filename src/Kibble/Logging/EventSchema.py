@@ -56,16 +56,8 @@ def LatencyStructure(
     }
     return doc
 
-
-# Backward-compatible alias (same event shape).
-ICMP = LatencyStructure
-
-
 def device_info(device_type_id: Optional[ObjectId], asset_tag: int) -> dict:
-    """Builds the stable ``devices`` collection document (identity only).
-
-    MongoDB adds ``_id``. Do not store IP/hostname/MAC here—use ``interface_configuration`` rows
-    referenced from ``device_configuration``.
+    """Builds a device-info document from endpoint IP and status data.
 
     Args:
         device_type_id: Device type ObjectId; required.
@@ -102,15 +94,8 @@ def device_types(name: str, protocols_supported: list[str]):
     }
 
 
-def device_configuration(
-    device_id: Optional[ObjectId],
-    interfaces: list[ObjectId],
-    applied_date: datetime.datetime,
-) -> dict:
+def device_configuration(device_id: ObjectId, interfaces: list[ObjectId], applied_date: datetime.datetime) -> dict:
     """Builds a device-configuration snapshot: which interface rows apply at ``applied_date``.
-
-    Per-interface IP/MAC/hostname live in ``interface_configurations``; this document only
-    references them by ``_id`` (see ``interface_configuration``).
 
     Args:
         device_id: Device ObjectId; required.
@@ -136,17 +121,8 @@ def device_configuration(
     return doc
 
 
-def interface_configuration(
-    device_id: ObjectId,
-    interface_name: str,
-    ip_address: str,
-    subnet_mask: str,
-    default_gateway: str,
-    hostname: str,
-    mac_address: str,
-    applied_date: datetime.datetime,
-) -> dict:
-    """Builds one row in ``interface_configurations`` (mutable network identity per interface).
+def interface_configuration(device_id:ObjectId, interface_name: str, ip_address: str, subnet_mask: str, default_gateway: str, hostname: str, mac_address: str, applied_date: datetime.datetime) -> dict:
+    """Builds an interface-configuration document for a device.
 
     Args:
         device_id: Owning device ``_id``.
