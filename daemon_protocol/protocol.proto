@@ -1,0 +1,5 @@
+syntax = "proto3";
+
+message StatusResponse {
+    repeated string test = 3;
+}
