@@ -1,26 +1,45 @@
 """
 TC-ML-004: Schema Validation
-Verify that MongoLogger handles missing or invalid fields appropriately
+Verify that MongoHandler handles missing or invalid fields appropriately
 """
 
 import time
-from Kibble.Logging.MongoLogger import MongoLogger
+import logging
+from unittest.mock import MagicMock
+from Kibble.Logging.MongoHandler import MongoHandler
 from Kibble.Logging import LogLevel
+
+
+def _make_handler():
+    """Helper: create a MongoHandler backed by a MagicMock client."""
+    mock_client = MagicMock()
+    handler = MongoHandler(
+        db_name='kibble_test',
+        client=mock_client
+    )
+    mock_collection = mock_client['kibble_test']['timeseries_events']
+    # Default: insert_many returns a successful result
+    mock_collection.insert_many.return_value.inserted_ids = [123]
+    return handler, mock_collection
+
+
+def _make_record(event: dict, level: int = logging.INFO) -> logging.LogRecord:
+    """Helper: create a LogRecord with the given event dict on record.status."""
+    record = logging.LogRecord(
+        name="test_logger", level=level, pathname="", lineno=0,
+        msg="Schema Validation Test", args=None, exc_info=None
+    )
+    record.status = event
+    record.levelno = level
+    return record
 
 
 def test_schema_missing_timestamp():
     """
     TC-ML-004a: Test logging event with missing timestamp field
     """
-    # Initialize logger
-    logger = MongoLogger(
-        db_name='kibble_test',
-        collection='events',
-        host='database.internal',
-        port=27017,
-        user='root',
-        passwd='password'
-    )
+    # Initialize handler
+    handler, mock_collection = _make_handler()
     
     # Create event dictionary missing the 'timestamp' field
     event = {
@@ -30,16 +49,16 @@ def test_schema_missing_timestamp():
         # NOTE: 'timestamp' field is missing
     }
     
-    # Attempt to log the event
-    # MongoDB will accept this by default (no schema enforcement)
-    result = logger.log(event, LogLevel.CRITICAL)
+    # Attempt to log the event via the handler
+    record = _make_record(event, logging.CRITICAL)
+    handler.emit(record)
+    handler._send_batch()
     
-    # Verify insertion succeeded (MongoDB doesn't enforce schema by default)
-    assert result == True, 'MongoDB should accept document even with missing timestamp'
+    # Verify insertion was attempted (MongoDB doesn't enforce schema by default)
+    assert mock_collection.insert_many.called, 'insert_many should have been called'
     
-    # Query the database to verify the event was inserted
-    logged_event = logger.events_collection.find_one({'endpoint.ip': '192.168.1.100'})
-    assert logged_event is not None, 'Event should be in database'
+    args, _ = mock_collection.insert_many.call_args
+    logged_event = args[0][0]
     
     # Confirm that the timestamp field is indeed missing
     assert 'timestamp' not in logged_event, 'Timestamp field should be missing'
@@ -48,8 +67,7 @@ def test_schema_missing_timestamp():
     # to prevent incomplete events from being logged
     
     # Cleanup
-    logger.events_collection.delete_many({})
-    logger.close()
+    handler.close()
     
     print('TC-ML-004a: PASS - Missing timestamp accepted (validation needed)')
 
@@ -58,15 +76,8 @@ def test_schema_missing_endpoint():
     """
     TC-ML-004b: Test logging event with missing endpoint field
     """
-    # Initialize logger
-    logger = MongoLogger(
-        db_name='kibble_test',
-        collection='events',
-        host='database.internal',
-        port=27017,
-        user='root',
-        passwd='password'
-    )
+    # Initialize handler
+    handler, mock_collection = _make_handler()
     
     # Create event missing the 'endpoint' field (critical information)
     event = {
@@ -77,17 +88,18 @@ def test_schema_missing_endpoint():
     }
     
     # Attempt to log the event
-    result = logger.log(event, LogLevel.CRITICAL)
+    record = _make_record(event, logging.CRITICAL)
+    handler.emit(record)
+    handler._send_batch()
     
-    # Verify insertion succeeded despite missing critical field
-    assert result == True, 'MongoDB accepts event without endpoint'
+    # Verify insertion was attempted despite missing critical field
+    assert mock_collection.insert_many.called, 'insert_many should have been called'
     
     # NOTE: Without endpoint information, this event is not useful
     # Schema validation should catch this before insertion
     
     # Cleanup
-    logger.events_collection.delete_many({})
-    logger.close()
+    handler.close()
     
     print('TC-ML-004b: PASS - Missing endpoint accepted (validation needed)')
 
@@ -96,15 +108,8 @@ def test_schema_wrong_data_types():
     """
     TC-ML-004c: Test logging event with incorrect data types
     """
-    # Initialize logger
-    logger = MongoLogger(
-        db_name='kibble_test',
-        collection='events',
-        host='database.internal',
-        port=27017,
-        user='root',
-        passwd='password'
-    )
+    # Initialize handler
+    handler, mock_collection = _make_handler()
     
     # Create event with intentionally wrong data types
     event = {
@@ -119,17 +124,18 @@ def test_schema_wrong_data_types():
     
     # Attempt to log the event
     # MongoDB accepts any types (schema-less by default)
-    result = logger.log(event, LogLevel.INFO)
+    record = _make_record(event, logging.INFO)
+    handler.emit(record)
+    handler._send_batch()
     
-    # Verify insertion succeeded
-    assert result == True, 'MongoDB accepts any data types'
+    # Verify insertion was attempted
+    assert mock_collection.insert_many.called, 'insert_many should have been called'
     
     # NOTE: Type validation should be implemented to ensure data consistency
     # Wrong types will cause issues when querying or analyzing data
     
     # Cleanup
-    logger.events_collection.delete_many({})
-    logger.close()
+    handler.close()
     
     print('TC-ML-004c: PASS - Wrong types accepted (type validation needed)')
 
@@ -138,31 +144,25 @@ def test_schema_empty_dict():
     """
     TC-ML-004d: Test logging an empty dictionary
     """
-    # Initialize logger
-    logger = MongoLogger(
-        db_name='kibble_test',
-        collection='events',
-        host='database.internal',
-        port=27017,
-        user='root',
-        passwd='password'
-    )
+    # Initialize handler
+    handler, mock_collection = _make_handler()
     
     # Attempt to log a completely empty event
     event = {}  # No fields at all
     
     # MongoDB will accept and insert an empty document
-    result = logger.log(event, LogLevel.INFO)
+    record = _make_record(event, logging.INFO)
+    handler.emit(record)
+    handler._send_batch()
     
-    # Verify insertion succeeded
-    assert result == True, 'MongoDB accepts empty documents'
+    # Verify insertion was attempted
+    assert mock_collection.insert_many.called, 'insert_many should have been called'
     
     # NOTE: Empty documents are useless for monitoring
     # Minimum required fields should be validated before insertion
     
     # Cleanup
-    logger.events_collection.delete_many({})
-    logger.close()
+    handler.close()
     
     print('TC-ML-004d: PASS - Empty dict accepted (validation needed)')
 
@@ -171,15 +171,8 @@ def test_schema_extra_fields():
     """
     TC-ML-004e: Test logging event with extra unexpected fields
     """
-    # Initialize logger
-    logger = MongoLogger(
-        db_name='kibble_test',
-        collection='events',
-        host='database.internal',
-        port=27017,
-        user='root',
-        passwd='password'
-    )
+    # Initialize handler
+    handler, mock_collection = _make_handler()
     
     # Create event with all required fields plus additional unexpected fields
     event = {
@@ -194,15 +187,17 @@ def test_schema_extra_fields():
     }
     
     # Attempt to log the event with extra fields
-    result = logger.log(event, LogLevel.INFO)
+    record = _make_record(event, logging.INFO)
+    handler.emit(record)
+    handler._send_batch()
     
-    # Verify insertion succeeded
-    assert result == True, 'MongoDB accepts extra fields'
+    # Verify insertion was attempted
+    assert mock_collection.insert_many.called, 'insert_many should have been called'
     
-    # Query the database to verify extra fields are preserved
-    logged_event = logger.events_collection.find_one({'endpoint.ip': '192.168.1.100'})
+    args, _ = mock_collection.insert_many.call_args
+    logged_event = args[0][0]
     
-    # Confirm extra fields are stored in the database
+    # Confirm extra fields are preserved in the logged data
     assert 'extra_field' in logged_event, 'Extra fields should be preserved'
     assert logged_event['extra_field'] == 'unexpected_data'
     
@@ -210,8 +205,7 @@ def test_schema_extra_fields():
     # but consider logging a warning for unexpected fields
     
     # Cleanup
-    logger.events_collection.delete_many({})
-    logger.close()
+    handler.close()
     
     print('TC-ML-004e: PASS - Extra fields accepted (might want to warn)')
 
@@ -220,15 +214,8 @@ def test_schema_nested_field_missing():
     """
     TC-ML-004f: Test logging event with nested field missing (endpoint without ip)
     """
-    # Initialize logger
-    logger = MongoLogger(
-        db_name='kibble_test',
-        collection='events',
-        host='database.internal',
-        port=27017,
-        user='root',
-        passwd='password'
-    )
+    # Initialize handler
+    handler, mock_collection = _make_handler()
     
     # Create event where 'endpoint' exists but 'endpoint.ip' is missing
     event = {
@@ -239,13 +226,15 @@ def test_schema_nested_field_missing():
     }
     
     # Attempt to log the event
-    result = logger.log(event, LogLevel.CRITICAL)
+    record = _make_record(event, logging.CRITICAL)
+    handler.emit(record)
+    handler._send_batch()
     
-    # Verify insertion succeeded
-    assert result == True, 'MongoDB accepts endpoint without ip'
+    # Verify insertion was attempted
+    assert mock_collection.insert_many.called, 'insert_many should have been called'
     
-    # Query the database
-    logged_event = logger.events_collection.find_one({'event_type': 'endpoint_down'})
+    args, _ = mock_collection.insert_many.call_args
+    logged_event = args[0][0]
     
     # Verify endpoint exists but has no ip
     assert 'endpoint' in logged_event
@@ -255,8 +244,7 @@ def test_schema_nested_field_missing():
     # Should check that endpoint.ip is present and valid
     
     # Cleanup
-    logger.events_collection.delete_many({})
-    logger.close()
+    handler.close()
     
     print('TC-ML-004f: PASS - Nested field missing accepted (validation needed)')
 
