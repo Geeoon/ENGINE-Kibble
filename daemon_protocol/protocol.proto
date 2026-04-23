@@ -1,5 +1,9 @@
 syntax = "proto3";
 
 message StatusResponse {
-    repeated string test = 3;
+    message TelemetryEntry {
+        string name = 1;
+        float value = 2;
+    }
+    repeated TelemetryEntry telemetry = 1;
 }
