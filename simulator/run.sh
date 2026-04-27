@@ -47,7 +47,7 @@ if [ $? -ne 0 ]; then
     exit 1
 fi
 
-docker compose up --scale secondary=$num_computers -d
+docker compose up --scale secondary=$num_computers --scale scpi=$num_computers -d
 # command below will show IP addresses of running containers, useful for ping
 docker inspect -f '{{.Name}} - {{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' $(docker ps -q)
 docker exec -it $MAIN_CONTAINER_NAME bash

@@ -1,0 +1,26 @@
+[nominal]
+# Normal/nominal settings
+latency_min = 0.1  # s
+latency_mean = 0.25  # s
+latency_stddev = 0.05  # s
+latency_max = 0.5  # s
+
+[anomaly__drop_connection]
+# "drop connection" anomalous settings, server drops all client connections
+
+# Priority if multiple modes are enabled at once
+priority = 3
+
+# How often to enable this mode
+period_min = 30  # s
+period_mean = 30  # s
+period_stddev = 1  # s
+period_max = 30  # s
+
+# How long to enable this mode for
+duration_min = 1  # s
+duration_mean = 1  # s
+duration_stddev = 1  # s
+duration_max = 1  # s
+
+drop_clients = true
