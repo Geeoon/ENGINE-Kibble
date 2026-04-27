@@ -4,8 +4,8 @@ After=network.target
 
 [Service]
 Type=simple
-User=
-Group=
+User=kibble
+Group=kibble
 ExecStart=/usr/bin/python3 #location of monitoring script
 Restart=on-failure
 RestartSec=10s

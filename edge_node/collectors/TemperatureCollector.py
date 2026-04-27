@@ -18,7 +18,7 @@ class TemperatureCollector(BaseCollector):
         """
         try:
             temps = psutil.sensors_temperatures()
-        except (OSError, NotImplementedError):
+        except (OSError, NotImplementedError, AttributeError):
             return None
 
         if not temps:

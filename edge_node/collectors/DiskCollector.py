@@ -2,6 +2,7 @@
 DiskCollector derived class from BaseCollector
 """
 
+import sys
 import psutil
 from .base import BaseCollector
 
@@ -13,11 +14,15 @@ class DiskCollector(BaseCollector):
 
     def read(self) -> float | None:
         """
-        Returns space usage for / as a percentage.
+        Returns disk usage as a percentage.
 
         :return: Disk usage percentage, or None if the metric cannot be read
         """
+        if sys.platform == "win32":
+            path = "C:\\"
+        else:
+            path = "/"
         try:
-            return psutil.disk_usage("/").percent
+            return psutil.disk_usage(path).percent
         except OSError:
             return None
