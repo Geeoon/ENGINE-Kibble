@@ -6,6 +6,9 @@ FROM redhat/ubi8:8.10-1770223225
 # install tools
 WORKDIR /tmp
 
+# netcat is nice for debugging
+RUN dnf install -y nmap-ncat
+
 # ping and python
 RUN dnf install -y iputils python3.12
 
