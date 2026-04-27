@@ -24,8 +24,9 @@ class TemperatureCollector(BaseCollector):
         if not temps:
             return None
 
-        # psutil returns groups of sensors
+        all_readings = []
         for entries in temps.values():
-            if entries:
-                return entries[0].current
-        return None
+            for entry in entries:
+                all_readings.append(entry.current)
+
+        return max(all_readings) if all_readings else None
