@@ -8,12 +8,22 @@ from Kibble.Logging import LogLevel
 # Bump when event shape changes so consumers can branch on version.
 EVENT_SCHEMA_VERSION = 1
 
+# Bump when device_configuration document shape changes (device_configurations collection).
+DEVICE_CONFIGURATION_SCHEMA_VERSION = 2
+
+# Bump when interface_configuration document shape changes (interface_configurations collection).
+INTERFACE_CONFIGURATION_SCHEMA_VERSION = 1
+
 # Event types for endpoint status (fixed set for queries/dashboards; aligns with observability conventions).
 EVENT_TYPE_ENDPOINT_UP = "endpoint_up"
 EVENT_TYPE_ENDPOINT_DOWN = "endpoint_down"
 
 
-def LatencyStructure(status_data: dict, severity: LogLevel = LogLevel.CRITICAL, device_id: Optional[ObjectId] = None) -> dict:
+def LatencyStructure(
+    status_data: dict,
+    severity: LogLevel = LogLevel.CRITICAL,
+    device_id: Optional[ObjectId] = None,
+) -> dict:
     """Builds an LatencyStructure endpoint-status event document for logging latency based telemetry.
 
     Args:
@@ -46,27 +56,26 @@ def LatencyStructure(status_data: dict, severity: LogLevel = LogLevel.CRITICAL, 
     }
     return doc
 
-def device_info(device_type_id: Optional[ObjectId], endpoint_ip: str, status_data: dict) -> dict:
+def device_info(device_type_id: Optional[ObjectId], asset_tag: int) -> dict:
     """Builds a device-info document from endpoint IP and status data.
 
     Args:
-        device_type_id: Optional device type ObjectId; included in doc if not None.
-        endpoint_ip: The endpoint IP address (stored as device_ip).
-        status_data: Dict with "hostname" and "mac_address" (default to "" if missing).
+        device_type_id: Device type ObjectId; required.
+        asset_tag: Integer asset tag; should be unique per device (sparse unique index recommended).
 
     Returns:
-        Dict with device_ip, hostname, mac_address, and optionally device_type_id.
+        Dict with ``asset_tag`` and ``device_type_id``.
+
+    Raises:
+        ValueError: If device_type_id is None.
     """
     if device_type_id is None:
-        raise ValueError("device_id is required")
+        raise ValueError("device_type_id is required")
     doc: dict = {
-        "device_ip": endpoint_ip,
-        "hostname": status_data.get("hostname", ""),
-        "mac_address": status_data.get("mac_address", ""),
+        "asset_tag": asset_tag,
         "device_type_id": device_type_id,
     }
     return doc
-
 
 
 def device_types(name: str, protocols_supported: list[str]):
@@ -84,3 +93,59 @@ def device_types(name: str, protocols_supported: list[str]):
         "protocols_supported": list(protocols_supported),
     }
 
+
+def device_configuration(device_id: ObjectId, interfaces: list[ObjectId], applied_date: datetime.datetime) -> dict:
+    """Builds a device-configuration snapshot: which interface rows apply at ``applied_date``.
+
+    Args:
+        device_id: Device ObjectId; required.
+        interfaces: Interface document ObjectIds (non-empty after inserts).
+        applied_date: When this snapshot was observed or applied (timezone-aware recommended).
+
+    Returns:
+        Dict with ``schema_version``, ``device_id``, ``interfaces``, ``applied_date``.
+
+    Raises:
+        ValueError: If ``device_id`` is None or ``interfaces`` is empty.
+    """
+    if device_id is None:
+        raise ValueError("device_id is required")
+    if not interfaces:
+        raise ValueError("interfaces must be non-empty")
+    doc: dict = {
+        "schema_version": DEVICE_CONFIGURATION_SCHEMA_VERSION,
+        "device_id": device_id,
+        "interfaces": list(interfaces),
+        "applied_date": applied_date,
+    }
+    return doc
+
+
+def interface_configuration(device_id:ObjectId, interface_name: str, ip_address: str, subnet_mask: str, default_gateway: str, hostname: str, mac_address: str, applied_date: datetime.datetime) -> dict:
+    """Builds an interface-configuration document for a device.
+
+    Args:
+        device_id: Owning device ``_id``.
+        interface_name: Interface key (e.g. ``\"default\"`` for the primary row from scans).
+        ip_address: Current IPv4/IPv6 address (may be empty when only hostname is known).
+        subnet_mask: Subnet mask for the interface.
+        default_gateway: Default gateway for this interface.
+        hostname: Resolved or configured hostname.
+        mac_address: Interface MAC address.
+        applied_date: When this snapshot was observed (used for history and IP→device resolution).
+
+    Returns:
+        Dict with ``schema_version``, ``device_id``, interface fields, and ``applied_date``.
+    """
+    doc: dict = {
+        "schema_version": INTERFACE_CONFIGURATION_SCHEMA_VERSION,
+        "device_id": device_id,
+        "interface_name": interface_name,
+        "ip_address": ip_address,
+        "subnet_mask": subnet_mask,
+        "default_gateway": default_gateway,
+        "hostname": hostname,
+        "mac_address": mac_address,
+        "applied_date": applied_date,
+    }
+    return doc

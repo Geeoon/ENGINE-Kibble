@@ -2,19 +2,20 @@
 Overall system implementation
 """
 
+import asyncio
 import logging
 import time
-import asyncio
 from typing import Optional
 
 from pymongo import MongoClient
 
 from Kibble.Logging import LogLevel, LatencyStructure
-from Kibble.Logging.EventSchema import device_info
 from Kibble.Monitoring import StatusMonitor
 from Kibble.Alerting import Alert
 from Kibble.Detecting import Detector, LatencyDetector
 from Kibble.Retrieval import DeviceRetriever
+
+DEFAULT_MONITOR_INTERFACE_NAME = "default" # set for now, but should be configurable
 
 
 class Kibble:
@@ -55,7 +56,7 @@ class Kibble:
                 raise ValueError(
                     "Status interval must be greater than each monitor's timeout"
                 )
-            
+
         self.monitors = monitors
         self.alerters = alerters or []
         self.detector = detector
@@ -137,8 +138,35 @@ class Kibble:
             pass
 
     def _get_devices(self):
-        self.devices = self.device_retriever.get_devices()
-            
+ 
+        previous = dict(self.devices) # used to track changes in the devices configurations
+        self.devices = self.device_retriever.get_devices(
+            default_interface_name=DEFAULT_MONITOR_INTERFACE_NAME
+        )
+
+        for device_id, device in self.devices.items():
+            if previous.get(device_id) != device:
+                if previous and device_id not in previous:
+                    self.maintainance_logger.info(f"Found new device: {device_id}")
+                elif device_id in previous:
+                    self.maintainance_logger.info(
+                        f"Updating device information for {device_id}"
+                    )
+                self.device_retriever.record_device_configuration_if_changed(
+                    device_id,
+                    device,
+                    default_interface_name=DEFAULT_MONITOR_INTERFACE_NAME,
+                )
+
+            if (
+                previous.get(device_id) != device
+                and not device.get("ip")
+                and not device.get("hostname")
+            ):
+                self.maintainance_logger.warning(
+                    f"Device {device_id} has no device_configuration snapshot (need ip and/or hostname to monitor)"
+                )
+
         for id, device in self.devices.items():
             for protocol in device['protocols']:
                 found = False
@@ -146,7 +174,7 @@ class Kibble:
                     if protocol == str(monitor):
                         monitor.add_endpoint(additional=[device | {'id': id}])
                         found = True
-                if not found:  # no monitor found for this protocol
+                if not found:
                     self.maintainance_logger.error(f"{id} attempting to use unsupported protocol {protocol}")
 
     def end(self, msg: str=""):
