@@ -5,7 +5,7 @@ Implements the DaemonMonitor
 import asyncio
 import time
 import socket
-import requests
+import urllib.request
 import logging
 from concurrent.futures import ThreadPoolExecutor
 
@@ -53,7 +53,8 @@ class DaemonMonitor(StatusMonitor):
                 self._status[target[0]]['status'] = {
                     "alive": result[0],
                     "latency": result[1],
-                    "last_updated": result[2]
+                    "last_updated": result[2],
+                    "telemetry": result[3]
                 }
 
     def _get_daemon_telemtry(self, target: str) -> list[dict] | None:
@@ -63,20 +64,20 @@ class DaemonMonitor(StatusMonitor):
                 entries), or None if no response
         """
         try:
-            response = requests.get(f"http://{target}:{self.port}/status", timeout=self._timeout)
-            if response.status_code != 200:
-                return None
+            with urllib.request.urlopen(f"http://{target}:{self.port}/status", timeout=self._timeout) as res:
+                response = res.read()
+                if res.code != 200:
+                    return None
             status = protocol_pb2.StatusResponse()
-            status.ParseFromString(response.content)
+            status.ParseFromString(response)
             return MessageToDict(
                 status,
-                including_default_value_fields=True,
                 preserving_proto_field_name=True,
                 use_integers_for_enums=True)["telemetry"]
         except:
             return None
 
-    async def _send_request_await_reply(self, target: str) -> tuple[bool, int, int, list[dict]]:
+    async def _get_telemetry_await_reply(self, target: str) -> tuple[bool, int, int, list[dict]]:
         """
         Sends an status request and waits for a reply
         
@@ -90,7 +91,7 @@ class DaemonMonitor(StatusMonitor):
             ip = socket.gethostbyname(target)
         except socket.gaierror:
             self.maintainance_logger.critical(f"Could not resolve the hostname for {target}")
-            return (False, self._timeout * 1000, round(time.time() * 1000))
+            return (False, self._timeout * 1000, round(time.time() * 1000), None)
         
         loop = asyncio.get_event_loop()
         

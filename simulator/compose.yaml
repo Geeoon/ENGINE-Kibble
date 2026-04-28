@@ -20,7 +20,7 @@ services:
     build:
       context: ../
       dockerfile: ./simulator/daemon/Dockerfile
-    # stop_grace_period: 1s
+    stop_grace_period: 1s
   secondary:
     image: kibble-secondary:latest
     networks:

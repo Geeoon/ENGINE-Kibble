@@ -8,7 +8,7 @@ from pymongo import MongoClient
 from Kibble import Kibble
 from Kibble.Alerting import EmailAlert, ScreenAlert
 from Kibble.Logging import MongoHandler
-from Kibble.Monitoring.Active import ICMPMonitor, SCPIMonitor
+from Kibble.Monitoring.Active import ICMPMonitor, SCPIMonitor, DaemonMonitor
 import logging
 
 formatter = logging.Formatter('%(asctime)s %(levelname)s %(message)s')
@@ -67,14 +67,18 @@ email_alert = EmailAlert()
 
 icmp_monitor = ICMPMonitor(timeout=5)
 scpi_monitor = SCPIMonitor(timeout=5)
+daemon_monitor = DaemonMonitor(timeout=5)
+
 try:
-    kibble = Kibble(client=mongo_client, monitors=[icmp_monitor, scpi_monitor], alerters=[screen_alert], default_device_type=("device 1", ["ICMP"]))
+    kibble = Kibble(client=mongo_client, monitors=[icmp_monitor, scpi_monitor, daemon_monitor], alerters=[screen_alert], default_device_type=("device 1", ["ICMP"]))
 except Exception as e:
     maintainance_logger.critical(f"Failed to start Kibble: {str(e)}")
     quit()
 # testing only: add devices to db, if they don't exist, for testing.
 # testing only: add scpi device type to db
 scpi_id = kibble.device_retriever.ensure_device_type("device 2", ["SCPI"])
+# testing only: add daemon device type to db
+daemon_id = kibble.device_retriever.ensure_device_type("device 3", ["daemon"])
 mongo_status_handler.db['devices'].update_one({"ip": "127.0.0.1"}, { "$setOnInsert": {
     "device_ip": "127.0.0.1",
     "device_type_id": kibble.default_device_type_id
@@ -95,6 +99,10 @@ for id in range(1, 6):
     mongo_status_handler.db['devices'].update_one({"hostname": f"simulator-scpi-{id}"}, { "$setOnInsert": {
         "hostname": f"simulator-scpi-{id}",
         "device_type_id": scpi_id
+    } }, upsert=True)
+    mongo_status_handler.db['devices'].update_one({"hostname": f"simulator-daemon-{id}"}, { "$setOnInsert": {
+        "hostname": f"simulator-daemon-{id}",
+        "device_type_id": daemon_id
     } }, upsert=True)
 
 tries = 1

@@ -10,5 +10,4 @@ COPY ./edge_node .
 
 RUN python3 -m pip install --break-system-packages -r requirements.txt
 
-# read /dev/null forever, busy loop to prevent container from automatically stopping itself
 CMD ["python3", "main.py"]

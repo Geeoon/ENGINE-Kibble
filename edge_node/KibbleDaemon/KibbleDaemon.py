@@ -17,7 +17,7 @@ class KibbleDaemon:
         telmetry_entry = res.telemetry.add()
         telmetry_entry.name = 'test'
         telmetry_entry.value = 1.5
-        return Response(telmetry_entry.SerializeToString(), 200)
+        return Response(res.SerializeToString(), 200, content_type="application/x-protobuf")
 
     def start(self, port: int):
         """
