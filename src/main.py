@@ -10,6 +10,10 @@ from Kibble.Alerting import EmailAlert, ScreenAlert
 from Kibble.Logging import MongoHandler
 from Kibble.Logging.EventSchema import device_configuration, interface_configuration
 from Kibble.Monitoring.Active import ICMPMonitor, SCPIMonitor
+from Kibble.Detecting import LatencyDetector
+import logging
+import argparse
+import yaml
 
 formatter = logging.Formatter('%(asctime)s %(levelname)s %(message)s')
 
@@ -65,10 +69,32 @@ status_logger.addHandler(mongo_status_handler)
 screen_alert = ScreenAlert()  # TODO: replace with logger possibly
 email_alert = EmailAlert()
 
+# latency configuration
+parser = argparse.ArgumentParser()
+parser.add_argument("--low-thresh", type=int)
+parser.add_argument("--medium-thresh", type=int)
+parser.add_argument("--high-thresh", type=int)
+args = parser.parse_args()
+
+config = {}
+try:
+    with open("../kibble.yaml") as f:
+        data = yaml.safe_load(f) or {}
+        config = data.get("latency_thresholds", {})
+except FileNotFoundError:
+    pass
+
+detector = LatencyDetector(
+    low_thresh=args.low_thresh or config.get("low_thresh", 500),
+    medium_thresh=args.medium_thresh or config.get("medium_thresh", 1000),
+    high_thresh=args.high_thresh or config.get("high_thresh", 2000),
+)
+
 icmp_monitor = ICMPMonitor(timeout=5)
 scpi_monitor = SCPIMonitor(timeout=5)
+
 try:
-    kibble = Kibble(client=mongo_client, monitors=[icmp_monitor, scpi_monitor], alerters=[screen_alert], default_device_type=("device 1", ["ICMP"]))
+    kibble = Kibble(client=mongo_client, monitors=[icmp_monitor, scpi_monitor], alerters=[screen_alert], detector=detector, default_device_type=("device 1", ["ICMP"]))
 except Exception as e:
     maintainance_logger.critical(f"Failed to start Kibble: {str(e)}")
     quit()

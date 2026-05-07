@@ -1,0 +1,4 @@
+latency_thresholds:
+  low_thresh: 500
+  medium_thresh: 1000
+  high_thresh: 2000
