@@ -76,8 +76,12 @@ class LatencyDetector(Detector):
                 if history[0]['level'] > LogLevel.DEBUG:
                     out[endpoint] = { 'level': history[0]['level'] }
                 continue
-
+            
+            # if the newest log is of greater severity than all previous in history
             if history[-1]['level'] > max(h['level'] for h in history[:-1]):
+                out[endpoint] = { 'level': history[-1]['level']}
+            # if the newest log is of lower severity than all previous in history
+            elif history[-1]['level'] < min(h['level'] for h in history[:-1]):
                 out[endpoint] = { 'level': history[-1]['level'] }
         
         return out

@@ -2,21 +2,33 @@
 Defines a device retriever
 """
 
-import logging
 import json
-from typing import Optional
+import logging
+import datetime
+from typing import Optional, Union
+
+from bson import ObjectId
 from pymongo import MongoClient
-from bson import ObjectId  
-from Kibble.Logging.EventSchema import device_types, EVENT_SCHEMA_VERSION
+
+from Kibble.Logging.EventSchema import (
+    DEVICE_CONFIGURATION_SCHEMA_VERSION,
+    INTERFACE_CONFIGURATION_SCHEMA_VERSION,
+    device_configuration,
+    interface_configuration,
+    device_types,
+)
 
 DEVICES_COLLECTION = "devices"
 DEVICE_TYPES_COLLECTION = "device_types"
+DEVICE_CONFIGURATIONS_COLLECTION = "device_configurations"
+INTERFACE_CONFIGURATIONS_COLLECTION = "interface_configurations"
+
 
 class DeviceRetriever:
     def __init__(self, client: MongoClient, db_name: str='kibble'):
         """
         Initializes a device retriever getting devices and device types from MongoDB
-        
+
         :param db_name: the MongoDB database to use
         :param client: the MongoDB client to use
         """
@@ -28,6 +40,10 @@ class DeviceRetriever:
         self.devices_collection = None
         self.device_types_collection = None
         self._fallback_device_id = None
+        self.device_configurations_collection = None
+        self.interface_configurations_collection = None
+       
+
         try:
             self._create_collections()
         except Exception as e:
@@ -56,16 +72,34 @@ class DeviceRetriever:
                         'mac': device.get('mac_address', None),
                         'protocols': device_types_dict[device['device_type_id']],
                     }
-    
+
     def _create_collections(self):
         if DEVICES_COLLECTION not in self.db.list_collection_names():
             self.db.create_collection(DEVICES_COLLECTION)
         self.devices_collection = self.db[DEVICES_COLLECTION]
+        self.devices_collection.create_index([("asset_tag", 1)], unique=True, sparse=True)
 
         if DEVICE_TYPES_COLLECTION not in self.db.list_collection_names():
             self.db.create_collection(DEVICE_TYPES_COLLECTION)
         self.device_types_collection = self.db[DEVICE_TYPES_COLLECTION]
-    
+
+        if DEVICE_CONFIGURATIONS_COLLECTION not in self.db.list_collection_names():
+            self.db.create_collection(DEVICE_CONFIGURATIONS_COLLECTION)
+        self.device_configurations_collection = self.db[DEVICE_CONFIGURATIONS_COLLECTION]
+        self.device_configurations_collection.create_index(
+            [("device_id", 1), ("applied_date", -1)]
+        )
+
+        if INTERFACE_CONFIGURATIONS_COLLECTION not in self.db.list_collection_names():
+            self.db.create_collection(INTERFACE_CONFIGURATIONS_COLLECTION)
+        self.interface_configurations_collection = self.db[INTERFACE_CONFIGURATIONS_COLLECTION]
+        self.interface_configurations_collection.create_index(
+            [("device_id", 1), ("applied_date", -1)]
+        )
+        self.interface_configurations_collection.create_index(
+            [("ip_address", 1), ("applied_date", -1)]
+        )
+
     def ensure_device_type(self, name: str, protocols_supported: list[str]) -> ObjectId:
         try:
             if self.devices_collection is None or self.device_types_collection is None:
@@ -79,35 +113,94 @@ class DeviceRetriever:
         except Exception as e:
             self.maintainance_logger.critical(f"Unable to ensure device type for {name}: {str(e)}")
         return self._fallback_device_id
-        
-    def get_devices(self):
+
+    def get_devices(self, default_interface_name: str = "default") -> dict[str, dict]:
         self.maintainance_logger.debug("Getting devices from database")
 
         try:
             if self.devices_collection is None or self.device_types_collection is None:
                 self._create_collections()
 
-            results = self.devices_collection.aggregate([
+            results = self.devices_collection.aggregate(
                 # join devices and device type over _id
-                {
-                    "$lookup": {
-                        "from": "device_types",
-                        "localField": "device_type_id",
-                        "foreignField": "_id",
-                        "as": "device_type"
-                    }
-                },
-                {
-                    "$project": {
-                        "_id": 1,
-                        "device_ip": 1,
-                        "hostname": 1,
-                        "mac_address": 1,
-                        # "device_type.name": 1,  # is this useful to us?
-                        "device_type.protocols_supported": 1
-                    }
-                }
-            ])
+                [
+                    {
+                        "$lookup": {
+                            "from": DEVICE_TYPES_COLLECTION,
+                            "localField": "device_type_id",
+                            "foreignField": "_id",
+                            "as": "device_type",
+                        }
+                    },
+                    {
+                        "$lookup": {
+                            "from": DEVICE_CONFIGURATIONS_COLLECTION,
+                            "let": {"dev_id": "$_id"},
+                            "pipeline": [
+                                {"$match": {"$expr": {"$eq": ["$device_id", "$$dev_id"]}}},
+                                {"$sort": {"applied_date": -1}},
+                                {"$limit": 1},
+                            ],
+                            "as": "latest_config",
+                        }
+                    },
+                    {"$addFields": {"_cfg": {"$arrayElemAt": ["$latest_config", 0]}}},
+                    {
+                        "$lookup": {
+                            "from": INTERFACE_CONFIGURATIONS_COLLECTION,
+                            "let": {"iface_ids": {"$ifNull": ["$_cfg.interfaces", []]}},
+                            "pipeline": [
+                                {"$match": {"$expr": {"$in": ["$_id", "$$iface_ids"]}}},
+                            ],
+                            "as": "iface_docs",
+                        }
+                    },
+                    {
+                        "$addFields": {
+                            "_iface": {
+                                "$ifNull": [
+                                    {
+                                        "$arrayElemAt": [
+                                            {
+                                                "$filter": {
+                                                    "input": {"$ifNull": ["$iface_docs", []]},
+                                                    "as": "i",
+                                                    "cond": {
+                                                        "$eq": [
+                                                            "$$i.interface_name",
+                                                            default_interface_name,
+                                                        ]
+                                                    },
+                                                }
+                                            },
+                                            0,
+                                        ]
+                                    },
+                                    {"$arrayElemAt": [{"$ifNull": ["$iface_docs", []]}, 0]},
+                                ]
+                            }
+                        }
+                    },
+                    {
+                        "$project": {
+                            "_id": 1,
+                            "device_ip": {
+                                "$ifNull": [
+                                    "$_iface.ip_address",
+                                    {"$ifNull": ["$device_ip", "$ip"]},
+                                ]
+                            },
+                            "hostname": {
+                                "$ifNull": ["$_iface.hostname", "$hostname"],
+                            },
+                            "mac_address": {
+                                "$ifNull": ["$_iface.mac_address", "$mac_address"],
+                            },
+                            "device_type.protocols_supported": 1,
+                        }
+                    },
+                ]
+            )
 
             # convert results to the dictionary
             for device in results:
@@ -133,5 +226,112 @@ class DeviceRetriever:
             self.maintainance_logger.critical(f"Failed to get latest devices from MongoDB: {str(e)}")
         return self._devices
 
-    def close(self):
+    def insert_device_configuration(self, doc: dict) -> ObjectId:
+        """Insert a device configuration"""
+        if self.device_configurations_collection is None:
+            self._create_collections()
+        if doc.get("schema_version") != DEVICE_CONFIGURATION_SCHEMA_VERSION:
+            raise ValueError(
+                f"device_configuration schema_version must be {DEVICE_CONFIGURATION_SCHEMA_VERSION}, "
+                f"got {doc.get('schema_version')!r}; build docs with EventSchema.device_configuration"
+            )
+        ret = self.device_configurations_collection.insert_one(doc)
+        return ret.inserted_id
+
+    def insert_interface_configuration(self, doc: dict) -> ObjectId:
+        """Inserts an interface configuration."""
+        if self.interface_configurations_collection is None:
+            self._create_collections()
+        if doc.get("schema_version") != INTERFACE_CONFIGURATION_SCHEMA_VERSION:
+            raise ValueError(
+                f"interface_configuration schema_version must be {INTERFACE_CONFIGURATION_SCHEMA_VERSION}, "
+                f"got {doc.get('schema_version')!r}; build docs with EventSchema.interface_configuration"
+            )
+        ret = self.interface_configurations_collection.insert_one(doc)
+        return ret.inserted_id
+
+    def get_interface_documents_ordered(self, interface_ids: list[ObjectId]) -> list[dict]:
+        """Return interface rows for ``interface_ids``, in the same order as the id list."""
+        if self.interface_configurations_collection is None:
+            self._create_collections()
+        if not interface_ids:
+            return []
+        cursor = self.interface_configurations_collection.find({"_id": {"$in": interface_ids}})
+        by_id = {d["_id"]: d for d in cursor}
+        return [by_id[i] for i in interface_ids if i in by_id]
+
+    def get_latest_device_configuration(self, device_id: ObjectId) -> Optional[dict]:
+        """Newest configuration row for this device (by ``applied_date``), or None."""
+        if self.device_configurations_collection is None:
+            self._create_collections()
+        return self.device_configurations_collection.find_one(
+            {"device_id": device_id},
+            sort=[("applied_date", -1)],
+        )
+
+    def _primary_interface_fields_from_device_configuration(self, device_cfg: dict, default_interface_name: str = "default") -> Optional[tuple[str, str, str, str, str]]:
+        """Returns primary interface fields tuple from one device_configuration snapshot."""
+        ids = device_cfg.get("interfaces") or []
+        if not ids: return None
+        rows = self.get_interface_documents_ordered(ids)
+        if not rows: return None
+
+        interface = next(
+            (
+                row
+                for row in rows
+                if row.get("interface_name") == default_interface_name
+            ),
+            rows[0],
+        )
+        return (
+            str(interface.get("ip_address") or ""),
+            str(interface.get("hostname") or ""),
+            str(interface.get("mac_address") or ""),
+            str(interface.get("subnet_mask") or ""),
+            str(interface.get("default_gateway") or ""),
+        )
+
+    def record_device_configuration_if_changed(self, device_id: str | ObjectId, new_device: dict, default_interface_name: str = "default") -> None:
+        """Insert interface + device_configuration rows when primary interface identity changed."""
+        oid = device_id if isinstance(device_id, ObjectId) else ObjectId(device_id)
+
+        subnet_mask = ""
+        default_gateway = ""
+        ip_address = str(new_device.get("ip") or "")
+        hostname = str(new_device.get("hostname") or "")
+        mac_address = str(new_device.get("mac") or "")
+        proposed_primary = (
+            ip_address,
+            hostname,
+            mac_address,
+            subnet_mask,
+            default_gateway,
+        )
+
+        latest = self.get_latest_device_configuration(oid)
+        if latest is not None:
+            latest_primary = self._primary_interface_fields_from_device_configuration(
+                latest,
+                default_interface_name=default_interface_name,
+            )
+            if latest_primary is not None and latest_primary == proposed_primary:
+                return
+
+        applied_date = datetime.datetime.now(datetime.timezone.utc)
+        interface_doc = interface_configuration(
+            oid,
+            default_interface_name,
+            ip_address,
+            subnet_mask,
+            default_gateway,
+            hostname,
+            mac_address,
+            applied_date,
+        )
+        interface_id = self.insert_interface_configuration(interface_doc)
+        doc = device_configuration(oid, [interface_id], applied_date)
+        self.insert_device_configuration(doc)
+
+    def close(self) -> None:
         self.client.close()
