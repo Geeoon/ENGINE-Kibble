@@ -1,6 +1,6 @@
 # Main python script
+import datetime
 import logging
-import json
 import time
 
 from pymongo import MongoClient
@@ -8,8 +8,16 @@ from pymongo import MongoClient
 from Kibble import Kibble
 from Kibble.Alerting import EmailAlert, ScreenAlert
 from Kibble.Logging import MongoHandler
+<<<<<<< HEAD
 from Kibble.Monitoring.Active import ICMPMonitor, SCPIMonitor, DaemonMonitor
+=======
+from Kibble.Logging.EventSchema import device_configuration, interface_configuration
+from Kibble.Monitoring.Active import ICMPMonitor, SCPIMonitor
+from Kibble.Detecting import LatencyDetector
+>>>>>>> main
 import logging
+import argparse
+import yaml
 
 formatter = logging.Formatter('%(asctime)s %(levelname)s %(message)s')
 
@@ -65,45 +73,113 @@ status_logger.addHandler(mongo_status_handler)
 screen_alert = ScreenAlert()  # TODO: replace with logger possibly
 email_alert = EmailAlert()
 
+# latency configuration
+parser = argparse.ArgumentParser()
+parser.add_argument("--low-thresh", type=int)
+parser.add_argument("--medium-thresh", type=int)
+parser.add_argument("--high-thresh", type=int)
+args = parser.parse_args()
+
+config = {}
+try:
+    with open("../kibble.yaml") as f:
+        data = yaml.safe_load(f) or {}
+        config = data.get("latency_thresholds", {})
+except FileNotFoundError:
+    pass
+
+detector = LatencyDetector(
+    low_thresh=args.low_thresh or config.get("low_thresh", 500),
+    medium_thresh=args.medium_thresh or config.get("medium_thresh", 1000),
+    high_thresh=args.high_thresh or config.get("high_thresh", 2000),
+)
+
 icmp_monitor = ICMPMonitor(timeout=5)
 scpi_monitor = SCPIMonitor(timeout=5)
 daemon_monitor = DaemonMonitor(timeout=5)
 
 try:
-    kibble = Kibble(client=mongo_client, monitors=[icmp_monitor, scpi_monitor, daemon_monitor], alerters=[screen_alert], default_device_type=("device 1", ["ICMP"]))
+    kibble = Kibble(client=mongo_client, monitors=[icmp_monitor, scpi_monitor, daemon_monitor], alerters=[screen_alert], detector=detector, default_device_type=("device 1", ["ICMP"]))
 except Exception as e:
     maintainance_logger.critical(f"Failed to start Kibble: {str(e)}")
     quit()
+
 # testing only: add devices to db, if they don't exist, for testing.
-# testing only: add scpi device type to db
-scpi_id = kibble.device_retriever.ensure_device_type("device 2", ["SCPI"])
-# testing only: add daemon device type to db
+# Keep devices identity-only (asset_tag + device_type_id). Network identity is stored in configuration collections.
+scpi_id = kibble.device_retriever.ensure_device_type('device 2', ['SCPI'])
 daemon_id = kibble.device_retriever.ensure_device_type("device 3", ["daemon"])
-mongo_status_handler.db['devices'].update_one({"ip": "127.0.0.1"}, { "$setOnInsert": {
-    "device_ip": "127.0.0.1",
-    "device_type_id": kibble.default_device_type_id
-    } }, upsert=True)
-mongo_status_handler.db['devices'].update_one({"hostname": "doesnotexist.internal"}, { "$setOnInsert": {
-    "hostname": "doesnotexist.internal",
-    "device_type_id": kibble.default_device_type_id
-    } }, upsert=True)
-mongo_status_handler.db['devices'].update_one({"device_ip": "192.67.67.67"}, { "$setOnInsert": {
-    "device_ip": "192.67.67.67",
-    "device_type_id": kibble.default_device_type_id
-    } }, upsert=True)
+test_devices = [
+    {'asset_tag': 1001, 'device_type_id': kibble.default_device_type_id, 'ip': '127.0.0.1', 'hostname': '', 'mac': ''},
+    {'asset_tag': 1002, 'device_type_id': kibble.default_device_type_id, 'ip': '', 'hostname': 'doesnotexist.internal', 'mac': ''},
+    {'asset_tag': 1003, 'device_type_id': kibble.default_device_type_id, 'ip': '192.67.67.67', 'hostname': '', 'mac': ''},
+]
 for id in range(1, 6):
-    mongo_status_handler.db['devices'].update_one({"hostname": f"simulator-secondary-{id}"}, { "$setOnInsert": {
-        "hostname": f"simulator-secondary-{id}",
-        "device_type_id": kibble.default_device_type_id
-        } }, upsert=True)
-    mongo_status_handler.db['devices'].update_one({"hostname": f"simulator-scpi-{id}"}, { "$setOnInsert": {
-        "hostname": f"simulator-scpi-{id}",
-        "device_type_id": scpi_id
-    } }, upsert=True)
-    mongo_status_handler.db['devices'].update_one({"hostname": f"simulator-daemon-{id}"}, { "$setOnInsert": {
-        "hostname": f"simulator-daemon-{id}",
-        "device_type_id": daemon_id
-    } }, upsert=True)
+    test_devices.append(
+        {
+            'asset_tag': 2000 + id,
+            'device_type_id': kibble.default_device_type_id,
+            'ip': '',
+            'hostname': f'simulator-secondary-{id}',
+            'mac': '',
+        }
+    )
+    test_devices.append(
+        {
+            'asset_tag': 3000 + id,
+            'device_type_id': scpi_id,
+            'ip': '',
+            'hostname': f'simulator-scpi-{id}',
+            'mac': '',
+        }
+    )
+    test_devices.append(
+        {
+            'asset_tag': 4000 + id,
+            'device_type_id': daemon_id,
+            'ip': '',
+            'hostname': f"simulator-daemon-{id}",
+            'mac': ''
+        }
+    )
+
+db = mongo_status_handler.db
+for test_device in test_devices:
+    db['devices'].update_one(
+        {'asset_tag': test_device['asset_tag']},
+        {
+            '$setOnInsert': {
+                'asset_tag': test_device['asset_tag'],
+                'device_type_id': test_device['device_type_id'],
+            }
+        },
+        upsert=True,
+    )
+
+# Initialize one configuration snapshot per seeded device if none exists.
+for test_device in test_devices:
+    dev = db['devices'].find_one({'asset_tag': test_device['asset_tag']}, {'_id': 1})
+    if dev is None:
+        continue
+    oid = dev['_id']
+    if db['device_configurations'].find_one({'device_id': oid}, projection={'_id': 1}) is not None:
+        continue
+
+    applied_date = datetime.datetime.now(datetime.timezone.utc)
+    iface_doc = interface_configuration(
+        oid,
+        'default',
+        str(test_device.get('ip') or ''),
+        '',
+        '',
+        str(test_device.get('hostname') or ''),
+        str(test_device.get('mac') or ''),
+        applied_date,
+    )
+    iface_id = kibble.device_retriever.insert_interface_configuration(iface_doc)
+    doc = device_configuration(oid, [iface_id], applied_date)
+    kibble.device_retriever.insert_device_configuration(doc)
+
+kibble._get_devices()
 
 tries = 1
 last_fail = 0

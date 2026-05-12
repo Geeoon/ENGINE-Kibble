@@ -14,7 +14,7 @@ fi
 which sudo &> /dev/null
 
 if [ $? -eq 0 ]; then
-    sudo $(which python3) ./main.py
+    sudo $(which python3) ./main.py "$@"
 else
-    $(which python3) ./main.py
+    $(which python3) ./main.py "$@"
 fi
