@@ -1,22 +1,26 @@
 """
 Implements the KibbleDaemon
 """
-
-
 from flask import Flask, Response
-from google.protobuf import json_format
-
 from . import protocol_pb2
+
+from KibbleDaemon.collectors import BaseCollector, CpuCollector, DiskCollector, MemoryCollector, NetworkIoCollector, TemperatureCollector
+
 class KibbleDaemon:
     def __init__(self):
         self.app = Flask("Kibble Daemon")
         self.app.add_url_rule('/status', 'status', self._get_status, methods=['GET'])
+        self.collectors: list[BaseCollector] = [CpuCollector(), DiskCollector(), MemoryCollector(), NetworkIoCollector(), TemperatureCollector()]
 
     def _get_status(self) -> Response:
         res = protocol_pb2.StatusResponse()
-        telmetry_entry = res.telemetry.add()
-        telmetry_entry.name = 'test'
-        telmetry_entry.value = 1.5
+        for collector in self.collectors:
+            val = collector.read()
+            if val is None:  # skip, cannot be read
+                continue
+            entry = res.telemetry.add()
+            entry.name = collector.name
+            entry.value = val
         return Response(res.SerializeToString(), 200, content_type="application/x-protobuf")
 
     def start(self, port: int):

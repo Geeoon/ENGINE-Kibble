@@ -8,13 +8,9 @@ from pymongo import MongoClient
 from Kibble import Kibble
 from Kibble.Alerting import EmailAlert, ScreenAlert
 from Kibble.Logging import MongoHandler
-<<<<<<< HEAD
-from Kibble.Monitoring.Active import ICMPMonitor, SCPIMonitor, DaemonMonitor
-=======
 from Kibble.Logging.EventSchema import device_configuration, interface_configuration
-from Kibble.Monitoring.Active import ICMPMonitor, SCPIMonitor
+from Kibble.Monitoring.Active import ICMPMonitor, SCPIMonitor, DaemonMonitor
 from Kibble.Detecting import LatencyDetector
->>>>>>> main
 import logging
 import argparse
 import yaml

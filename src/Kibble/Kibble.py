@@ -9,6 +9,7 @@ from typing import Optional
 
 from pymongo import MongoClient
 
+from Kibble.Logging.EventSchema import TelemetryStructure
 from Kibble.Logging import LogLevel, LatencyStructure
 from Kibble.Monitoring import StatusMonitor
 from Kibble.Alerting import Alert
