@@ -3,7 +3,7 @@ TemperatureCollector reads CPU temperature in Celsius
 """
 
 import psutil
-from .base import BaseCollector
+from collectors import BaseCollector
 
 
 class TemperatureCollector(BaseCollector):
