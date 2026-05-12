@@ -6,7 +6,7 @@ After=network.target
 Type=simple
 User=kibble
 Group=kibble
-ExecStart=/usr/bin/python3 #location of monitoring script
+ExecStart=/opt/kibble/edge_agent/.venv/bin/python3 /opt/kibble/edge_agent/main.py
 Restart=on-failure
 RestartSec=10s
 
