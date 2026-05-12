@@ -13,6 +13,8 @@ class PowerCollector(BaseCollector):
     Uses Linux sysfs (RAPL) or power_supply.
     """
     def __init__(self):
+        super().__init__()
+        self.name = 'power'
         self.last_energy_uj = None
         self.last_time = None
         
