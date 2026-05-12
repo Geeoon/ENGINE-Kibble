@@ -2,19 +2,20 @@
 Overall system implementation
 """
 
+import asyncio
 import logging
 import time
-import asyncio
 from typing import Optional
 
 from pymongo import MongoClient
 
-from Kibble.Logging import LogLevel, ICMP
-from Kibble.Logging.EventSchema import device_info
+from Kibble.Logging import LogLevel, LatencyStructure
 from Kibble.Monitoring import StatusMonitor
 from Kibble.Alerting import Alert
 from Kibble.Detecting import Detector, LatencyDetector
 from Kibble.Retrieval import DeviceRetriever
+
+DEFAULT_MONITOR_INTERFACE_NAME = "default" # set for now, but should be configurable
 
 
 class Kibble:
@@ -55,19 +56,16 @@ class Kibble:
                 raise ValueError(
                     "Status interval must be greater than each monitor's timeout"
                 )
-            
+
         self.monitors = monitors
         self.alerters = alerters or []
         self.detector = detector
         self.interval = interval
 
-        self.device_retriever = DeviceRetriever(db_name="kibble", client=client)
-        self.default_device_type_id = self.device_retriever.ensure_device_type(default_device_type, ['ICMP']) 
-
+        self.device_retriever = DeviceRetriever(client=client)
+        self.default_device_type_id = self.device_retriever.ensure_device_type(default_device_type, ['ICMP'])
         # Collections
         self.devices_collection = self.device_retriever.devices_collection
-        self.device_types_collection = self.device_retriever.device_types_collection
-        self.events_collection = self.device_retriever.db["timeseries_events"] # Fix later for constistency with dataretriever 
 
         # devices from the database
         self.devices = {}
@@ -79,42 +77,35 @@ class Kibble:
         """
         Starts the Kibble system
         """
-        try:
+        asyncio.run(self._rescan())
+        self._last_device_log_time = time.time()
+
+        while True:
+            start_time = time.time()
             asyncio.run(self._rescan())
-            self._last_device_log_time = time.time()
+            logs, levels = self._get_logs()
+            end_time = time.time()
+            behind = (end_time - start_time) > self.interval
 
-            while True:
-                start_time = time.time()
-                asyncio.run(self._rescan())
-                logs, levels = self._get_logs()
-                end_time = time.time()
-                behind = (end_time - start_time) > self.interval
+            if behind:
+                self.maintainance_logger.warning("Kibble service is lagging behind scanning interval")
 
-                if behind:
-                    self.maintainance_logger.warning("Kibble service is lagging behind scanning interval")
+            self._send_to_loggers(logs, levels)
 
-                self._send_to_loggers(logs, levels)
+            # send alerts if needed
+            alerts = self.detector.get_alerts()
+            for endpoint in alerts.keys():
+                self.maintainance_logger.info(f"Sending alert(s)")
+                for alerter in self.alerters:
+                    alerter.alert(f"ALERT FOR {endpoint}", alerts[endpoint]['level'])
 
-                # send alerts if needed
-                alerts = self.detector.get_alerts()
-                for endpoint in alerts.keys():
-                    self.maintainance_logger.info(f"Sending alert(s)")
-                    for alerter in self.alerters:
-                        alerter.alert(f"ALERT FOR {endpoint}", alerts[endpoint]['level'])
-
-                # check devices again
-                self._get_devices()
-                # wait until next interval
-                if not behind:
-                    sleep_time = self.interval - end_time + start_time
-                    self.maintainance_logger.debug(f"Waiting {round(sleep_time, 1)} seconds until scanning again")
-                    time.sleep(sleep_time)
-
-        except KeyboardInterrupt:
-            self._end("user ended (KeyboardInterrupt)")
-        except Exception as e:
-            self._end(str(e))
-            raise
+            # check devices again
+            self._get_devices()
+            # wait until next interval
+            if not behind:
+                sleep_time = self.interval - end_time + start_time
+                self.maintainance_logger.debug(f"Waiting {round(sleep_time, 1)} seconds before scanning again")
+                time.sleep(sleep_time)
 
     async def _rescan(self):
         self.maintainance_logger.debug("Starting a network scan")
@@ -132,7 +123,7 @@ class Kibble:
                 if not this_status:
                     continue
                 level = self.detector.get_level(key, this_status)
-                logs.append(ICMP(this_status, level, device_id=key))
+                logs.append(LatencyStructure(this_status, level, device_id=key))
                 levels.append(level)
 
         return logs, levels
@@ -147,54 +138,35 @@ class Kibble:
             pass
 
     def _get_devices(self):
-        self.maintainance_logger.debug("Getting devices from database")
+ 
+        previous = dict(self.devices) # used to track changes in the devices configurations
+        self.devices = self.device_retriever.get_devices(
+            default_interface_name=DEFAULT_MONITOR_INTERFACE_NAME
+        )
 
-        if self.devices_collection is None:
-            raise ValueError("devices_collection must be provided")
+        for device_id, device in self.devices.items():
+            if previous.get(device_id) != device:
+                if previous and device_id not in previous:
+                    self.maintainance_logger.info(f"Found new device: {device_id}")
+                elif device_id in previous:
+                    self.maintainance_logger.info(
+                        f"Updating device information for {device_id}"
+                    )
+                self.device_retriever.record_device_configuration_if_changed(
+                    device_id,
+                    device,
+                    default_interface_name=DEFAULT_MONITOR_INTERFACE_NAME,
+                )
 
-        results = self.devices_collection.aggregate([
-            # join devices and device type over _id
-            {
-                "$lookup": {
-                    "from": "device_types",
-                    "localField": "device_type_id",
-                    "foreignField": "_id",
-                    "as": "device_type"
-                }
-            },
-            {
-                "$project": {
-                    "_id": 1,
-                    "device_ip": 1,
-                    "hostname": 1,
-                    "mac_address": 1,
-                    # "device_type.name": 1,  # is this useful to us?
-                    "device_type.protocols_supported": 1
-                }
-            }
-        ])
+            if (
+                previous.get(device_id) != device
+                and not device.get("ip")
+                and not device.get("hostname")
+            ):
+                self.maintainance_logger.warning(
+                    f"Device {device_id} has no device_configuration snapshot (need ip and/or hostname to monitor)"
+                )
 
-        # convert results to the dictionary
-        for device in results:
-            id = str(device['_id'])
-            if id not in self.devices.keys():
-                self.maintainance_logger.info(f"Found new device: {id}")
-                self.devices[id] = {}
-            if not device['device_type']:
-                self.maintainance_logger.error(f"No corresponding device type found for {id}")
-                continue
-
-            new_device = {
-                'ip': device.get('device_ip', None),
-                'hostname': device.get('hostname', None),
-                'mac': device.get('mac_address', None),
-                'protocols': list({proto for protocol in device.get('device_type', []) for proto in protocol.get('protocols_supported', [])}),
-            }
-
-            if self.devices[id] != new_device:
-                self.maintainance_logger.info(f"Updating device information for {id}")
-                self.devices[id] = new_device
-        
         for id, device in self.devices.items():
             for protocol in device['protocols']:
                 found = False
@@ -202,41 +174,8 @@ class Kibble:
                     if protocol == str(monitor):
                         monitor.add_endpoint(additional=[device | {'id': id}])
                         found = True
-                if not found:  # no monitor found for this protocol
+                if not found:
                     self.maintainance_logger.error(f"{id} attempting to use unsupported protocol {protocol}")
 
-    # deprecated
-    def _log_devices(self):
-        devices: list[dict] = []
-        for monitor in self.monitors:
-            for endpoint_ip, status_data in monitor.get_status().items():
-                if status_data is None:
-                    continue
-                
-                # getting the device type for each endpoint
-                meta = self.device_unique_ids["index"].get(endpoint_ip)
-                dtype_id = (
-                    meta.get("device_type_id") if meta and meta.get("device_type_id") else self.default_device_type_id
-                )
-
-                devices.append(device_info(dtype_id, endpoint_ip, status_data))
-
-        if not devices:
-            return
-
-        for doc in devices:
-            device_ip = doc.get("device_ip")
-            if device_ip is None:
-                continue
-            # no longer using logger.log_device_many, using direct DB writes
-            self.devices_collection.update_one(
-                {"device_ip": device_ip},
-                {"$set": doc},
-                upsert=True,
-            )
-
-        # Refresh caches after upserting devices so the next run can use the updated device info (if any chnages0
-        self._get_devices() 
-
-    def _end(self, msg: str=""):
+    def end(self, msg: str=""):
         self.maintainance_logger.debug(msg)

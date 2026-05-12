@@ -3,7 +3,7 @@ TemperatureCollector reads CPU temperature in Celsius
 """
 
 import psutil
-from .base import BaseCollector
+from collectors import BaseCollector
 
 
 class TemperatureCollector(BaseCollector):
@@ -18,14 +18,15 @@ class TemperatureCollector(BaseCollector):
         """
         try:
             temps = psutil.sensors_temperatures()
-        except (OSError, NotImplementedError):
+        except (OSError, NotImplementedError, AttributeError):
             return None
 
         if not temps:
             return None
 
-        # psutil returns groups of sensors
+        all_readings = []
         for entries in temps.values():
-            if entries:
-                return entries[0].current
-        return None
+            for entry in entries:
+                all_readings.append(entry.current)
+
+        return max(all_readings) if all_readings else None

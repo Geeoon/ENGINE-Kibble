@@ -3,7 +3,7 @@ CpuCollector derived class from BaseCollector
 """
 
 import psutil
-from .base import BaseCollector
+from collectors import BaseCollector
 
 
 class CpuCollector(BaseCollector):
