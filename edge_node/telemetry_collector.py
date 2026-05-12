@@ -5,7 +5,7 @@ on an edge node.
 
 import datetime
 import time
-from collectors import CpuCollector, DiskCollector, MemoryCollector, TemperatureCollector, NetworkIoCollector
+from collectors import CpuCollector, DiskCollector, MemoryCollector, TemperatureCollector, NetworkIoCollector, PowerCollector
 
 INTERVAL = 30  # seconds between collections
 
@@ -13,6 +13,7 @@ cpu_collector = CpuCollector()
 memory_collector = MemoryCollector()
 # temp will only work on linux for (psutil temp only works on linux)
 temperature_collector = TemperatureCollector()
+power_collector = PowerCollector()
 disk_collector = DiskCollector()
 network_io_collector = NetworkIoCollector()
 
