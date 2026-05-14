@@ -7,6 +7,7 @@ import logging
 import time
 from typing import Optional
 
+from bson import ObjectId
 from pymongo import MongoClient
 
 from Kibble.Logging import LogLevel, LatencyStructure
@@ -31,6 +32,7 @@ class Kibble:
         detector: Detector = LatencyDetector(),
         interval: int = 10,
         default_device_type: Optional[tuple[str, list[str]]] = None,
+        monitor_device_ids: Optional[dict[str, ObjectId]] = None,
     ):
         """
         Initializes the Kibble system.
@@ -41,6 +43,7 @@ class Kibble:
         :param detector: the detector to use for determining log levels and alerts
         :param interval: how often to check the status of endpoints in seconds
         :param default_device_type: (name, [protocols]) for a default device_type row
+        :param monitor_device_ids: Optional map ``str(monitor)`` → ``devices._id`` for ``monitor_device_id`` on events.
         """
 
         self.maintainance_logger = logging.getLogger("Kibble_Maintainance")
@@ -61,6 +64,7 @@ class Kibble:
         self.alerters = alerters or []
         self.detector = detector
         self.interval = interval
+        self.monitor_device_ids = dict(monitor_device_ids) if monitor_device_ids else {}
 
         self.device_retriever = DeviceRetriever(client=client)
         self.default_device_type_id = self.device_retriever.ensure_device_type(default_device_type, ['ICMP'])
@@ -123,7 +127,15 @@ class Kibble:
                 if not this_status:
                     continue
                 level = self.detector.get_level(key, this_status)
-                logs.append(LatencyStructure(this_status, level, device_id=key))
+                monitor_id = self.monitor_device_ids.get(str(monitor))
+                logs.append(
+                    LatencyStructure(
+                        this_status,
+                        key,
+                        monitor_id,
+                        severity=level,
+                    )
+                )
                 levels.append(level)
 
         return logs, levels

@@ -6,7 +6,7 @@ from bson import ObjectId  # type: ignore[import-untyped]
 from Kibble.Logging import LogLevel
 
 # Bump when event shape changes so consumers can branch on version.
-EVENT_SCHEMA_VERSION = 1
+EVENT_SCHEMA_VERSION = 2
 
 # Bump when device_configuration document shape changes (device_configurations collection).
 DEVICE_CONFIGURATION_SCHEMA_VERSION = 2
@@ -21,24 +21,27 @@ EVENT_TYPE_ENDPOINT_DOWN = "endpoint_down"
 
 def LatencyStructure(
     status_data: dict,
+    edge_device_id: ObjectId,
+    monitor_device_id: Optional[ObjectId] = None,
     severity: LogLevel = LogLevel.CRITICAL,
-    device_id: Optional[ObjectId] = None,
 ) -> dict:
     """Builds an LatencyStructure endpoint-status event document for logging latency based telemetry.
 
     Args:
         status_data: Dict with "alive", "latency", and "last_updated" status.
+        edge_device_id: Mongo ``devices._id`` for the edge endpoint that was probed.
+        monitor_device_id: Mongo ``devices._id`` for the monitor that produced this event, if known.
         severity: Log level (default CRITICAL).
-        device_id: Required device ObjectId; must not be None.
 
     Returns:
-        Event dict with schema_version, timestamp, event_type, status, severity_level, and device_id.
+        Event dict with schema_version, timestamp, event_type, status, severity_level,
+        ``edge_device_id``, ``monitor_device_id`` (may be null), and legacy ``device_id`` (same as ``edge_device_id``).
 
     Raises:
-        ValueError: If device_id is None.
+        ValueError: If ``edge_device_id`` is None.
     """
-    if device_id is None:
-        raise ValueError("device_id is required")
+    if edge_device_id is None:
+        raise ValueError("edge_device_id is required")
     timestamp = datetime.datetime.now(datetime.timezone.utc)
     alive = status_data.get("alive", False)
     event_type = EVENT_TYPE_ENDPOINT_UP if alive else EVENT_TYPE_ENDPOINT_DOWN
@@ -49,12 +52,19 @@ def LatencyStructure(
         "status": {
             "alive": alive,
             "latency_ms": status_data.get("latency", 0),
-            "last_updated_ms": status_data.get("last_updated", timestamp.isoformat()),
+            "last_updated_ms": int(status_data.get("last_updated", timestamp.timestamp() * 1000)),
         },
         "severity_level": severity.value[0],
-        "device_id": device_id,
+        "edge_device_id": edge_device_id,
+        "monitor_device_id": monitor_device_id,
+        # same as edge_device_id, kept for readers expecting device_id.
+        "device_id": edge_device_id,
     }
     return doc
+
+
+# For older references in code and tests.
+ICMP = LatencyStructure
 
 def device_info(device_type_id: Optional[ObjectId], asset_tag: int) -> dict:
     """Builds a device-info document from endpoint IP and status data.
