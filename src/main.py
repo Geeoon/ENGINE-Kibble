@@ -1,6 +1,8 @@
 # Main python script
+import atexit
 import datetime
 import logging
+import signal
 import time
 
 from pymongo import MongoClient
@@ -74,13 +76,16 @@ parser = argparse.ArgumentParser()
 parser.add_argument("--low-thresh", type=int)
 parser.add_argument("--medium-thresh", type=int)
 parser.add_argument("--high-thresh", type=int)
+parser.add_argument("--monitor-id", type=int, help="Unique integer ID for this monitoring node (lowest ID wins leader election)")
 args = parser.parse_args()
 
 config = {}
+election_config = {}
 try:
     with open("../kibble.yaml") as f:
         data = yaml.safe_load(f) or {}
         config = data.get("latency_thresholds", {})
+        election_config = data.get("election", {})
 except FileNotFoundError:
     pass
 
@@ -90,14 +95,30 @@ detector = LatencyDetector(
     high_thresh=args.high_thresh or config.get("high_thresh", 2000),
 )
 
+# election parameters (CLI overrides YAML)
+monitor_id = args.monitor_id if args.monitor_id is not None else election_config.get("monitor_id", 0)
+heartbeat_ttl = election_config.get("heartbeat_ttl", 30)
+redundancy_factor = election_config.get("redundancy_factor", 2)
+
 icmp_monitor = ICMPMonitor(timeout=5)
 scpi_monitor = SCPIMonitor(timeout=5)
 
 try:
-    kibble = Kibble(client=mongo_client, monitors=[icmp_monitor, scpi_monitor], alerters=[screen_alert], detector=detector, default_device_type=("device 1", ["ICMP"]))
+    kibble = Kibble(
+        client=mongo_client,
+        monitors=[icmp_monitor, scpi_monitor],
+        monitor_id=monitor_id,
+        heartbeat_ttl=heartbeat_ttl,
+        redundancy_factor=redundancy_factor,
+        alerters=[screen_alert],
+        detector=detector,
+        default_device_type=("device 1", ["ICMP"]),
+    )
 except Exception as e:
     maintainance_logger.critical(f"Failed to start Kibble: {str(e)}")
     quit()
+
+maintainance_logger.info(f"Kibble started with monitor_id={monitor_id}, heartbeat_ttl={heartbeat_ttl}s, redundancy_factor={redundancy_factor}")
 
 # testing only: add devices to db, if they don't exist, for testing.
 # Keep devices identity-only (asset_tag + device_type_id). Network identity is stored in configuration collections.
@@ -163,6 +184,15 @@ for test_device in test_devices:
     iface_id = kibble.device_retriever.insert_interface_configuration(iface_doc)
     doc = device_configuration(oid, [iface_id], applied_date)
     kibble.device_retriever.insert_device_configuration(doc)
+
+# --- graceful shutdown ---
+def _graceful_shutdown(*_args):
+    """Release leases and deregister from election on shutdown."""
+    maintainance_logger.info("Graceful shutdown: releasing leases and deregistering...")
+    kibble.end("shutting down")
+
+atexit.register(_graceful_shutdown)
+signal.signal(signal.SIGTERM, lambda *a: (_graceful_shutdown(), exit(0)))
 
 kibble._get_devices()
 
