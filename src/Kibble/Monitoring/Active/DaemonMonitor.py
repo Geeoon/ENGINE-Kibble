@@ -57,10 +57,10 @@ class DaemonMonitor(StatusMonitor):
                     "telemetry": result[3]
                 }
 
-    def _get_daemon_telemtry(self, target: str) -> list[dict] | None:
+    def _get_daemon_telemetry(self, target: str) -> list[dict] | None:
         """
         :param target: the target IP address
-        :return: the result from the telemetry request (as a list of telemtry
+        :return: the result from the telemetry request (as a list of telemetry
                 entries), or None if no response
         """
         try:
@@ -75,6 +75,7 @@ class DaemonMonitor(StatusMonitor):
                 preserving_proto_field_name=True,
                 use_integers_for_enums=True)["telemetry"]
         except:
+            self.maintainance_logger.error(f"Could not connect to the daemon for {target}")
             return None
 
     async def _get_telemetry_await_reply(self, target: str) -> tuple[bool, int, int, list[dict]]:
@@ -97,7 +98,7 @@ class DaemonMonitor(StatusMonitor):
         
         request_time = time.time()
         # NOTE: could be some overhead from the thread starting and ending
-        response = await loop.run_in_executor(self._executor, lambda: self._get_daemon_telemtry(ip))
+        response = await loop.run_in_executor(self._executor, lambda: self._get_daemon_telemetry(ip))
         response_time = time.time() 
 
         # timed out

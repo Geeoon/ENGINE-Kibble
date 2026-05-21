@@ -54,7 +54,7 @@ def LatencyStructure(status_data: dict, device_id: ObjectId, severity: LogLevel 
 
 def TelemetryStructure(status_data: dict, device_id: ObjectId, severity: LogLevel = LogLevel.CRITICAL) -> dict:
     """
-    Builds a TelemtryStrcuture endpoint-status event document for logging daemon based telemtry.
+    Builds a TelemetryStrcuture endpoint-status event document for logging daemon based telemetry.
 
     :param status_dict: dict with "alive", "latency", "last_updated", and "telemetry".
     :param severity: Log level
