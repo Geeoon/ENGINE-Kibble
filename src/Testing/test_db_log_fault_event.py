@@ -4,7 +4,7 @@ from unittest.mock import MagicMock
 from bson import ObjectId  # Added for mandatory device_id
 from Kibble.Logging.MongoHandler import MongoHandler
 from Kibble.Logging import LogLevel
-from Kibble.Logging.EventSchema import ICMP  # Changed from ping_event
+from Kibble.Logging import LatencyStructure
 
 def test_log_fault_event():
     """
@@ -29,7 +29,7 @@ def test_log_fault_event():
     }
     
     # UPDATED: Use ICMP and provide a dummy ObjectId
-    event = ICMP(status_data=status_data, severity=LogLevel.CRITICAL, device_id=ObjectId())
+    event = LatencyStructure(status_data, LogLevel.CRITICAL, device_id=ObjectId())
     
     record = logging.LogRecord(
         name="test_logger", level=logging.CRITICAL, pathname="", lineno=0,

@@ -9,12 +9,11 @@ from unittest.mock import MagicMock
 from Kibble.Kibble import Kibble
 from Kibble.Alerting.EmailAlert import EmailAlert
 from Kibble.Logging import LogLevel
-from Kibble.Logging.EventSchema import ICMP
 
 def test_email_alert_content_and_trigger():
     # Verify environment variable for password is set or there will be a failure
     if not os.getenv('EMAIL_PASSWD'):
-        pytest.fail("EMAIL_PASSWD env var not set. Run: $env:EMAIL_PASSWD='your_pass'")
+        pytest.skip("EMAIL_PASSWD env var not set. Skipping real email test.")
     
     mock_monitor = MagicMock()
     mock_monitor._timeout = 1

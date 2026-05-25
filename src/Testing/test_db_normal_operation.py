@@ -4,7 +4,7 @@ from unittest.mock import MagicMock
 from bson import ObjectId
 from Kibble.Logging.MongoHandler import MongoHandler
 from Kibble.Logging import LogLevel
-from Kibble.Logging.EventSchema import ICMP  # Changed from ping_event
+from Kibble.Logging import LatencyStructure
 
 def test_log_normal_operation():
     """
@@ -27,7 +27,7 @@ def test_log_normal_operation():
     
     # The new ICMP function requires status_data, severity, and device_id.
     # Note: The IP is no longer a direct argument; it's usually tied to the device_id in the DB.
-    event = ICMP(status_data=status_data, severity=LogLevel.LOW, device_id=ObjectId())
+    event = LatencyStructure(status_data, LogLevel.LOW, device_id=ObjectId())
     
     record = logging.LogRecord(
         name="test_logger", level=logging.INFO, pathname="", lineno=0,
