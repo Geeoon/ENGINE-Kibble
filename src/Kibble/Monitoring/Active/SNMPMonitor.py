@@ -60,7 +60,7 @@ class SNMPMonitor(StatusMonitor):
                 else:
                     targets.append((id, target['details']['ip']))
 
-            coroutines = [self._send_snmp_await_reply(target[1]) for target in targets]
+            coroutines = [self._send_request_await_reply(target[1]) for target in targets]
             results = await asyncio.gather(*coroutines)
 
             for target, result in zip(targets, results):
@@ -68,7 +68,7 @@ class SNMPMonitor(StatusMonitor):
                     "alive": result[0],
                     "latency": result[1],
                     "last_updated": result[2],
-                    "telemetry": results[3]
+                    "telemetry": result[3]
                 }
     
     def _get_snmp_telemetry(self, target: str) -> dict | None:
