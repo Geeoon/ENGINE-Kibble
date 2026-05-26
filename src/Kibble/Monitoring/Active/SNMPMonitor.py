@@ -12,14 +12,20 @@ from pysnmp.hlapi.v3arch.asyncio import *
 
 from Kibble.Monitoring import StatusMonitor
 
-OIDS = {
-    "ifOperStatus":        "1.3.6.1.2.1.2.2.1.8",
-    "ifInErrors":          "1.3.6.1.2.1.2.2.1.14",
-    "ifOutErrors":         "1.3.6.1.2.1.2.2.1.20",
-    "ifInDiscards":        "1.3.6.1.2.1.2.2.1.13",
-    "ifOutDiscards":       "1.3.6.1.2.1.2.2.1.19",
-    "ifHCInOctets":        "1.3.6.1.2.1.31.1.1.1.6",
-    "ifHCOutOctets":       "1.3.6.1.2.1.31.1.1.1.10"
+WALK_OIDS = {
+    "ifOperStatus":        "1.3.6.1.2.1.2.2.1.8",  # port status (up or down)
+    "ifLastChange":        "1.3.6.1.2.1.2.2.1.9",  # last port status change
+    "ifHighSpeed":         "1.3.6.1.2.1.31.1.1.1.15",  # port speed
+    # "ifInErrors":          "1.3.6.1.2.1.2.2.1.14",
+    # "ifOutErrors":         "1.3.6.1.2.1.2.2.1.20",
+    # "ifInDiscards":        "1.3.6.1.2.1.2.2.1.13",
+    # "ifOutDiscards":       "1.3.6.1.2.1.2.2.1.19",
+    # "ifHCInOctets":        "1.3.6.1.2.1.31.1.1.1.6",
+    # "ifHCOutOctets":       "1.3.6.1.2.1.31.1.1.1.10",
+}
+
+GET_OIDS = {
+    "sysUpTime":           "1.3.6.1.2.1.1.3.0",  # switch uptime
 }
 
 class SNMPMonitor(StatusMonitor):
@@ -71,12 +77,37 @@ class SNMPMonitor(StatusMonitor):
         :return: the result from the SNMP request(s), or None if no response/error
         """
         try:
-            return asyncio.run(asyncio.wait_for(
-                self._snmp_walk_multiple(self.engine, target, self.community, OIDS),
+            walk_res = asyncio.run(asyncio.wait_for(
+                self._snmp_walk_multiple(self.engine, target, self.community, WALK_OIDS),
                 timeout=self._timeout,
             ))
+            if walk_res is None:
+                return None
+            
+            get_res = asyncio.run(asyncio.wait_for(
+                self._snmp_get_multiple(self.engine, target, self.community, GET_OIDS)
+            ))
+            if get_res is None:
+                return None
+            return walk_res | get_res
         except:
             return None
+        
+    async def _snmp_get_multiple(self, engine: SnmpEngine, target: UdpTransportTarget, community: str, oids: dict) -> dict | None:
+        """
+        Performs multiple SNMP gets on OIDs
+        :param engine: the SnmpEngine object
+        :param target: the SNMP target
+        :param community: the community string
+        :param oids: the OIDs to perform gets on, key is the ASCII name and the value is the actual OID
+        :return: dict of the OIDs' names and their corresponding value, or None if there was an error
+        """
+        res = {}
+        for name, oid in oids.items():
+            this_res = await self._snmp_walk(engine, target, community, oid)
+            if not this_res:
+                return None
+            res[name] = this_res
     
     async def _snmp_walk_multiple(self, engine: SnmpEngine, target: UdpTransportTarget, community: str, oids: dict) -> dict | None:
         """
@@ -85,7 +116,7 @@ class SNMPMonitor(StatusMonitor):
         :param target: the SNMP target
         :param community: the community string
         :param oids: the OIDs to perform walks on, key is the ASCII name and value is the actual OID
-        :return: dict of the OIDs and their corresponding indexes and values, or None if there was an error
+        :return: dict of the OIDs' names and their corresponding indexes and values, or None if there was an error
         """
         res = {}
         for name, oid in oids.items():
@@ -109,8 +140,8 @@ class SNMPMonitor(StatusMonitor):
             CommunityData(community, mpModel=1),
             target,
             ContextData(),
-            ObjectType(ObjectIdentifier(oid)),
-            lexigraphicalMode=False
+            ObjectType(ObjectIdentity(oid)),
+            lexicographicMode=False
         ):
             if errorIndiciation or errorStatus:
                 return None
@@ -119,6 +150,27 @@ class SNMPMonitor(StatusMonitor):
                 index = oid_str.split(".")[-1]
                 res[index] = int(varBind[1])
         return res
+    
+    async def _snmp_get(self, engine: SnmpEngine, target: UdpTransportTarget, community: str, oid: str) -> int | None:
+        """
+        Performs an SNMP get on an OID
+        :param engine: the SnmpEngine object
+        :param target: the SNMP target
+        :param community: the community string
+        :param oid: the OID to perform the get on
+        :return: the result of the SNMP get
+        """
+        errorIndication, errorStatus, errorIndex, varBinds = await get_cmd(
+            engine,
+            CommunityData(community, mpModel=1),
+            target,
+            ContextData(),
+            ObjectType(ObjectIdentity(oid)),
+        )
+        if errorIndication or errorStatus:
+            return None
+        return int(varBinds[0][1])
+
 
     async def _send_request_await_reply(self, target: str) -> tuple[bool, int, int]:
         """
