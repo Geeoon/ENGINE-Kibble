@@ -4,7 +4,7 @@ DiskCollector derived class from BaseCollector
 
 import sys
 import psutil
-from collectors import BaseCollector
+from KibbleDaemon.collectors import BaseCollector
 
 
 class DiskCollector(BaseCollector):
@@ -13,6 +13,8 @@ class DiskCollector(BaseCollector):
     """
 
     def __init__(self, path: str | None = None) -> None:
+        super().__init__()
+        self.name = "disk"
         if path is not None:
             self._path = path
         elif sys.platform == "win32":

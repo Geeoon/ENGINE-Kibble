@@ -6,6 +6,9 @@ from abc import ABC, abstractmethod
 
 
 class BaseCollector(ABC):
+    def __init__(self):
+        self.name = "Base"
+        
     """
     Abstract class for metric collecting
     """

@@ -1,7 +1,9 @@
 dnspython==2.8.0
+numpy==2.4.4
+protobuf==7.34.1
 pymongo==4.16.0
 scapy==2.7.0
-pyyaml==6.0
+pyyaml==6.0.1
 
 # Testing Framework & Utilities
 pytest==8.0.0

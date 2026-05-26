@@ -5,7 +5,7 @@ on an edge node.
 
 import datetime
 import time
-from collectors import CpuCollector, DiskCollector, MemoryCollector, TemperatureCollector, NetworkIoCollector, PowerCollector
+from KibbleDaemon.collectors import CpuCollector, DiskCollector, MemoryCollector, TemperatureCollector, NetworkIoCollector, PowerCollector
 
 INTERVAL = 30  # seconds between collections
 
