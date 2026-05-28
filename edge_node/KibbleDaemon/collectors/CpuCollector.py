@@ -3,13 +3,17 @@ CpuCollector derived class from BaseCollector
 """
 
 import psutil
-from collectors import BaseCollector
+from KibbleDaemon.collectors import BaseCollector
 
 
 class CpuCollector(BaseCollector):
     """
     CpuCollector class for collecting CPU usage percentage.
     """
+    def __init__(self):
+        super().__init__()
+        self.name = "cpu"
+
     def read(self) -> float:
         """
         Returns the current CPU usage as a percentage.

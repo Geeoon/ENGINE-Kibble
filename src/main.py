@@ -9,7 +9,11 @@ from Kibble import Kibble
 from Kibble.Alerting import EmailAlert, ScreenAlert
 from Kibble.Logging import MongoHandler
 from Kibble.Logging.EventSchema import device_configuration, interface_configuration
+<<<<<<< HEAD
 from Kibble.Monitoring.Active import ICMPMonitor, SCPIMonitor, SNMPMonitor
+=======
+from Kibble.Monitoring.Active import ICMPMonitor, SCPIMonitor, DaemonMonitor
+>>>>>>> main
 from Kibble.Detecting import LatencyDetector
 import logging
 import argparse
@@ -93,8 +97,9 @@ detector = LatencyDetector(
 icmp_monitor = ICMPMonitor(timeout=5)
 scpi_monitor = SCPIMonitor(timeout=5)
 snmp_monitor = SNMPMonitor(timeout=5, community='public')
+daemon_monitor = DaemonMonitor(timeout=5)
 try:
-    kibble = Kibble(client=mongo_client, monitors=[icmp_monitor, scpi_monitor, snmp_monitor], alerters=[screen_alert], detector=detector, default_device_type=("device 1", ["ICMP"]))
+    kibble = Kibble(client=mongo_client, monitors=[icmp_monitor, scpi_monitor, daemon_monitor, snmp_monitor], alerters=[screen_alert], detector=detector, default_device_type=("device 1", ["ICMP"]))
 except Exception as e:
     maintainance_logger.critical(f"Failed to start Kibble: {str(e)}")
     quit()

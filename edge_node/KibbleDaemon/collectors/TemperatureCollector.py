@@ -3,13 +3,17 @@ TemperatureCollector reads CPU temperature in Celsius
 """
 
 import psutil
-from collectors import BaseCollector
+from KibbleDaemon.collectors import BaseCollector
 
 
 class TemperatureCollector(BaseCollector):
     """
     TemperatureCollector class for collecting CPU temperature.
     """
+    def __init__(self):
+        super().__init__()
+        self.name = 'temp'
+
     def read(self) -> float | None:
         """
         Reads CPU temperature with psutil

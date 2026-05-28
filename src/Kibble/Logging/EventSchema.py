@@ -19,11 +19,7 @@ EVENT_TYPE_ENDPOINT_UP = "endpoint_up"
 EVENT_TYPE_ENDPOINT_DOWN = "endpoint_down"
 
 
-def LatencyStructure(
-    status_data: dict,
-    severity: LogLevel = LogLevel.CRITICAL,
-    device_id: Optional[ObjectId] = None,
-) -> dict:
+def LatencyStructure(status_data: dict, device_id: ObjectId, severity: LogLevel = LogLevel.CRITICAL) -> dict:
     """Builds an LatencyStructure endpoint-status event document for logging latency based telemetry.
 
     Args:
@@ -56,7 +52,20 @@ def LatencyStructure(
     }
     return doc
 
-def device_info(device_type_id: Optional[ObjectId], asset_tag: int) -> dict:
+def TelemetryStructure(status_data: dict, device_id: ObjectId, severity: LogLevel = LogLevel.CRITICAL) -> dict:
+    """
+    Builds a TelemetryStrcuture endpoint-status event document for logging daemon based telemetry.
+
+    :param status_dict: dict with "alive", "latency", "last_updated", and "telemetry".
+    :param severity: Log level
+    :param device_id: the Device ObjectId
+    :return: dict with schema_version, timestamp, even_type, status, severity_level, and device_id
+    """
+    out = LatencyStructure(status_data, device_id, severity)
+    out["status"]["telemetry"] = status_data.get("telemetry", None)
+    return out
+
+def device_info(device_type_id: Optional[ObjectId], endpoint_ip: str, status_data: dict) -> dict:
     """Builds a device-info document from endpoint IP and status data.
 
     Args:
