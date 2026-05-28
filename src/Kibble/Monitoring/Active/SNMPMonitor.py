@@ -46,7 +46,7 @@ class SNMPMonitor(StatusMonitor):
         self._executor = ThreadPoolExecutor(workers)
         self.maintainance_logger = logging.getLogger("Kibble_Maintainance")
         self.port = port
-        self.engine = SnmpEngine()
+        self.community = community
     
     def __str__(self):
         return 'SNMP'
@@ -62,7 +62,6 @@ class SNMPMonitor(StatusMonitor):
 
             coroutines = [self._send_request_await_reply(target[1]) for target in targets]
             results = await asyncio.gather(*coroutines)
-
             for target, result in zip(targets, results):
                 self._status[target[0]]['status'] = {
                     "alive": result[0],
@@ -78,14 +77,14 @@ class SNMPMonitor(StatusMonitor):
         """
         try:
             walk_res = asyncio.run(asyncio.wait_for(
-                self._snmp_walk_multiple(self.engine, target, self.community, WALK_OIDS),
+                self._snmp_walk_multiple(target, self.community, WALK_OIDS),
                 timeout=self._timeout,
             ))
             if walk_res is None:
                 return None
-            
             get_res = asyncio.run(asyncio.wait_for(
-                self._snmp_get_multiple(self.engine, target, self.community, GET_OIDS)
+                self._snmp_get_multiple(target, self.community, GET_OIDS),
+                timeout=self._timeout
             ))
             if get_res is None:
                 return None
@@ -93,52 +92,53 @@ class SNMPMonitor(StatusMonitor):
         except:
             return None
         
-    async def _snmp_get_multiple(self, engine: SnmpEngine, target: UdpTransportTarget, community: str, oids: dict) -> dict | None:
+    async def _snmp_get_multiple(self, target: str, community: str, oids: dict) -> dict | None:
         """
         Performs multiple SNMP gets on OIDs
-        :param engine: the SnmpEngine object
-        :param target: the SNMP target
+        :param target: the SNMP target IP
         :param community: the community string
         :param oids: the OIDs to perform gets on, key is the ASCII name and the value is the actual OID
         :return: dict of the OIDs' names and their corresponding value, or None if there was an error
         """
         res = {}
         for name, oid in oids.items():
-            this_res = await self._snmp_walk(engine, target, community, oid)
+            this_res = await self._snmp_get(target, community, oid)
             if not this_res:
                 return None
             res[name] = this_res
+        return res
     
-    async def _snmp_walk_multiple(self, engine: SnmpEngine, target: UdpTransportTarget, community: str, oids: dict) -> dict | None:
+    async def _snmp_walk_multiple(self, target: str, community: str, oids: dict) -> dict | None:
         """
         Performs multiple SNMP walks on OIDs
-        :param engine: the SnmpEngine object
-        :param target: the SNMP target
+        :param target: the SNMP target IP
         :param community: the community string
         :param oids: the OIDs to perform walks on, key is the ASCII name and value is the actual OID
         :return: dict of the OIDs' names and their corresponding indexes and values, or None if there was an error
         """
         res = {}
         for name, oid in oids.items():
-            this_res = await self._snmp_walk(engine, target, community, oid)
+            this_res = await self._snmp_walk(target, community, oid)
             if not this_res:
                 return None
             res[name] = this_res
-
-    async def _snmp_walk(self, engine: SnmpEngine, target: UdpTransportTarget, community: str, oid: str) -> dict | None:
+        return res
+    
+    async def _snmp_walk(self, target: str, community: str, oid: str) -> dict | None:
         """
         Performs an SNMP walk on an OID
-        :param engine: the SnmpEngine object
-        :param target: the SNMP target
+        :param target: the SNMP target IP
         :param community: the community string
         :param oid: the OID to perform the walk on
         :return: dict of the indexes and values, or None if there was an error
         """
+        engine = SnmpEngine()
+        sock = await UdpTransportTarget.create((target, self.port))
         res = {}
         async for errorIndiciation, errorStatus, errorIndex, varBinds in walk_cmd(
             engine,
             CommunityData(community, mpModel=1),
-            target,
+            sock,
             ContextData(),
             ObjectType(ObjectIdentity(oid)),
             lexicographicMode=False
@@ -151,19 +151,20 @@ class SNMPMonitor(StatusMonitor):
                 res[index] = int(varBind[1])
         return res
     
-    async def _snmp_get(self, engine: SnmpEngine, target: UdpTransportTarget, community: str, oid: str) -> int | None:
+    async def _snmp_get(self, target: str, community: str, oid: str) -> int | None:
         """
         Performs an SNMP get on an OID
-        :param engine: the SnmpEngine object
-        :param target: the SNMP target
+        :param target: the SNMP target IP
         :param community: the community string
         :param oid: the OID to perform the get on
         :return: the result of the SNMP get
         """
+        engine = SnmpEngine()
+        sock = await UdpTransportTarget.create((target, self.port))
         errorIndication, errorStatus, errorIndex, varBinds = await get_cmd(
             engine,
             CommunityData(community, mpModel=1),
-            target,
+            sock,
             ContextData(),
             ObjectType(ObjectIdentity(oid)),
         )
