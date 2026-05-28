@@ -9,11 +9,7 @@ from Kibble import Kibble
 from Kibble.Alerting import EmailAlert, ScreenAlert
 from Kibble.Logging import MongoHandler
 from Kibble.Logging.EventSchema import device_configuration, interface_configuration
-<<<<<<< HEAD
-from Kibble.Monitoring.Active import ICMPMonitor, SCPIMonitor, SNMPMonitor
-=======
-from Kibble.Monitoring.Active import ICMPMonitor, SCPIMonitor, DaemonMonitor
->>>>>>> main
+from Kibble.Monitoring.Active import ICMPMonitor, SCPIMonitor, SNMPMonitor, DaemonMonitor
 from Kibble.Detecting import LatencyDetector
 import logging
 import argparse
