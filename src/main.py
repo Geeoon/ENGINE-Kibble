@@ -125,7 +125,7 @@ test_devices = [
     {'asset_tag': 1001, 'device_type_id': icmp_id, 'ip': '127.0.0.1', 'hostname': '', 'mac': ''},
     {'asset_tag': 1002, 'device_type_id': icmp_id, 'ip': '', 'hostname': 'doesnotexist.internal', 'mac': ''},
     {'asset_tag': 1003, 'device_type_id': icmp_id, 'ip': '192.67.67.67', 'hostname': '', 'mac': ''},
-    {'asset_tag': 1003, 'device_type_id': icmp_id, 'ip': '192.168.1.99', 'hostname': '', 'mac': ''},  # SNMP switch
+    {'asset_tag': 1004, 'device_type_id': snmp_id, 'ip': '192.168.1.99', 'hostname': '', 'mac': ''},  # SNMP switch
 ]
 for id in range(1, 6):
     test_devices.append(
