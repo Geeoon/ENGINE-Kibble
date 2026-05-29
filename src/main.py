@@ -60,13 +60,28 @@ file_status_handler.setFormatter(formatter)
 # mongodb logging
 mongo_status_handler = MongoHandler(client=mongo_client)
 mongo_status_handler.setLevel(logging.NOTSET)
-
 # attach handlers
 # status_logger.addHandler(screen_status_handler)  # just for debugging
 status_logger.addHandler(file_status_handler)  # keep on disk in case the database goes down
 status_logger.addHandler(mongo_status_handler)
 
-screen_alert = ScreenAlert()  # TODO: replace with logger possibly
+# logger for alerts
+alert_logger = logging.getLogger("Kibble_Alerts")
+status_logger.setLevel(logging.DEBUG)
+status_logger.propagate = True
+# screen logging
+screen_alert_handler = logging.StreamHandler()
+screen_alert_handler.setLevel(logging.NOTSET)
+screen_alert_handler.setFormatter(formatter)
+# file logging
+file_alert_handler = logging.FileHandler("./kibble_alerts.log")
+file_alert_handler.setLevel(logging.NOTSET)
+file_alert_handler.setFormatter(formatter)
+# attach handlers
+alert_logger.addHandler(screen_alert_handler)
+alert_logger.addHandler(file_alert_handler)
+
+screen_alert = ScreenAlert()
 email_alert = EmailAlert()
 
 # latency configuration

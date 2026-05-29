@@ -76,19 +76,20 @@ class SNMPMonitor(StatusMonitor):
         :return: the result from the SNMP request(s), or None if no response/error
         """
         try:
-            walk_res = asyncio.run(asyncio.wait_for(
+            walk_res, walk_latency = asyncio.run(asyncio.wait_for(
                 self._snmp_walk_multiple(target, self.community, WALK_OIDS),
                 timeout=self._timeout,
             ))
             if walk_res is None:
                 return None
-            get_res = asyncio.run(asyncio.wait_for(
+            get_res, get_latency = asyncio.run(asyncio.wait_for(
                 self._snmp_get_multiple(target, self.community, GET_OIDS),
                 timeout=self._timeout
             ))
             if get_res is None:
                 return None
-            return walk_res | get_res
+            latency = (walk_latency * len(WALK_OIDS) + get_latency * len(GET_OIDS)) / (len(WALK_OIDS) + len(GET_OIDS))  # weighted average
+            return walk_res | get_res | {'latency': latency}
         except:
             return None
         
@@ -101,12 +102,16 @@ class SNMPMonitor(StatusMonitor):
         :return: dict of the OIDs' names and their corresponding value, or None if there was an error
         """
         res = {}
+        cumulative = 0
         for name, oid in oids.items():
+            start_time = time.time()
             this_res = await self._snmp_get(target, community, oid)
+            end_time = time.time()
+            cumulative += end_time - start_time
             if not this_res:
                 return None
             res[name] = this_res
-        return res
+        return res, cumulative / len(oids)
     
     async def _snmp_walk_multiple(self, target: str, community: str, oids: dict) -> dict | None:
         """
@@ -117,12 +122,16 @@ class SNMPMonitor(StatusMonitor):
         :return: dict of the OIDs' names and their corresponding indexes and values, or None if there was an error
         """
         res = {}
+        cumulative = 0
         for name, oid in oids.items():
+            start_time = time.time()
             this_res = await self._snmp_walk(target, community, oid)
+            end_time = time.time()
+            cumulative += end_time - start_time
             if not this_res:
                 return None
             res[name] = this_res
-        return res
+        return res, cumulative / len(oids)
     
     async def _snmp_walk(self, target: str, community: str, oid: str) -> dict | None:
         """
@@ -191,7 +200,6 @@ class SNMPMonitor(StatusMonitor):
         
         loop = asyncio.get_event_loop()
         
-        request_time = time.time()
         # NOTE: could be some overhead from the thread starting and ending
         response = await loop.run_in_executor(self._executor, lambda: self._get_snmp_telemetry(ip))
         response_time = time.time() 
@@ -199,5 +207,6 @@ class SNMPMonitor(StatusMonitor):
         if not response:
             return (False, self._timeout * 1000, round(response_time * 1000), None)
         
-        return (True, round((response_time - request_time) * 1000), round(response_time * 1000), response)
+        request_time = response.pop('latency', None)
+        return (True, round(request_time * 1000), round(response_time * 1000), response)
 
