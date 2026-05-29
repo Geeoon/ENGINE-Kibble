@@ -31,7 +31,6 @@ class Kibble:
         alerters: list[Alert] | None = None,
         detector: Detector = LatencyDetector(),
         interval: int = 10,
-        default_device_type: Optional[tuple[str, list[str]]] = None,
     ):
         """
         Initializes the Kibble system.
@@ -41,7 +40,6 @@ class Kibble:
         :param alerters: the alerts to use for alerting faults
         :param detector: the detector to use for determining log levels and alerts
         :param interval: how often to check the status of endpoints in seconds
-        :param default_device_type: (name, [protocols]) for a default device_type row
         """
 
         self.maintainance_logger = logging.getLogger("Kibble_Maintainance")
