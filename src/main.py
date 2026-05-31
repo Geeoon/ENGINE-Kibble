@@ -11,7 +11,7 @@ from Kibble import Kibble
 from Kibble.Alerting import EmailAlert, ScreenAlert
 from Kibble.Logging import MongoHandler
 from Kibble.Logging.EventSchema import device_configuration, interface_configuration
-from Kibble.Monitoring.Active import ICMPMonitor, SCPIMonitor, DaemonMonitor
+from Kibble.Monitoring.Active import ICMPMonitor, SCPIMonitor, SNMPMonitor, DaemonMonitor
 from Kibble.Detecting import LatencyDetector
 import logging
 import argparse
@@ -62,13 +62,28 @@ file_status_handler.setFormatter(formatter)
 # mongodb logging
 mongo_status_handler = MongoHandler(client=mongo_client)
 mongo_status_handler.setLevel(logging.NOTSET)
-
 # attach handlers
 # status_logger.addHandler(screen_status_handler)  # just for debugging
 status_logger.addHandler(file_status_handler)  # keep on disk in case the database goes down
 status_logger.addHandler(mongo_status_handler)
 
-screen_alert = ScreenAlert()  # TODO: replace with logger possibly
+# logger for alerts
+alert_logger = logging.getLogger("Kibble_Alerts")
+status_logger.setLevel(logging.DEBUG)
+status_logger.propagate = True
+# screen logging
+screen_alert_handler = logging.StreamHandler()
+screen_alert_handler.setLevel(logging.NOTSET)
+screen_alert_handler.setFormatter(formatter)
+# file logging
+file_alert_handler = logging.FileHandler("./kibble_alerts.log")
+file_alert_handler.setLevel(logging.NOTSET)
+file_alert_handler.setFormatter(formatter)
+# attach handlers
+alert_logger.addHandler(screen_alert_handler)
+alert_logger.addHandler(file_alert_handler)
+
+screen_alert = ScreenAlert()
 email_alert = EmailAlert()
 
 # latency configuration
@@ -102,12 +117,12 @@ redundancy_factor = election_config.get("redundancy_factor", 2)
 
 icmp_monitor = ICMPMonitor(timeout=5)
 scpi_monitor = SCPIMonitor(timeout=5)
+snmp_monitor = SNMPMonitor(timeout=5, community='public')
 daemon_monitor = DaemonMonitor(timeout=5)
-
 try:
     kibble = Kibble(
         client=mongo_client,
-        monitors=[icmp_monitor, scpi_monitor, daemon_monitor],
+        monitors=[icmp_monitor, scpi_monitor, daemon_monitor, snmp_monitor],
         monitor_id=monitor_id,
         heartbeat_ttl=heartbeat_ttl,
         redundancy_factor=redundancy_factor,
@@ -123,18 +138,21 @@ maintainance_logger.info(f"Kibble started with monitor_id={monitor_id}, heartbea
 
 # testing only: add devices to db, if they don't exist, for testing.
 # Keep devices identity-only (asset_tag + device_type_id). Network identity is stored in configuration collections.
+icmp_id = kibble.device_retriever.ensure_device_type('device 1', ['ICMP'])
 scpi_id = kibble.device_retriever.ensure_device_type('device 2', ['SCPI'])
 daemon_id = kibble.device_retriever.ensure_device_type("device 3", ["daemon"])
+snmp_id = kibble.device_retriever.ensure_device_type('device 4', ['SNMP'])
 test_devices = [
-    {'asset_tag': 1001, 'device_type_id': kibble.default_device_type_id, 'ip': '127.0.0.1', 'hostname': '', 'mac': ''},
-    {'asset_tag': 1002, 'device_type_id': kibble.default_device_type_id, 'ip': '', 'hostname': 'doesnotexist.internal', 'mac': ''},
-    {'asset_tag': 1003, 'device_type_id': kibble.default_device_type_id, 'ip': '192.67.67.67', 'hostname': '', 'mac': ''},
+    {'asset_tag': 1001, 'device_type_id': icmp_id, 'ip': '127.0.0.1', 'hostname': '', 'mac': ''},
+    {'asset_tag': 1002, 'device_type_id': icmp_id, 'ip': '', 'hostname': 'doesnotexist.internal', 'mac': ''},
+    {'asset_tag': 1003, 'device_type_id': icmp_id, 'ip': '192.67.67.67', 'hostname': '', 'mac': ''},
+    {'asset_tag': 1004, 'device_type_id': snmp_id, 'ip': '192.168.1.99', 'hostname': '', 'mac': ''},  # SNMP switch
 ]
 for id in range(1, 6):
     test_devices.append(
         {
             'asset_tag': 2000 + id,
-            'device_type_id': kibble.default_device_type_id,
+            'device_type_id': icmp_id,
             'ip': '',
             'hostname': f'simulator-secondary-{id}',
             'mac': '',
