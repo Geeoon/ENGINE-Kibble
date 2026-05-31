@@ -15,6 +15,10 @@ services:
     depends_on:
       - database
     stop_grace_period: 1s  # infinite looping will not respond to SIGTERM
+    extra_hosts:
+      - "kibble-1:192.168.0.212"
+      - "kibble-2:192.168.0.198"
+      - "snmp-switch:192.168.0.239"
   daemon:
     image: kibble-daemon:latest
     networks:
@@ -72,7 +76,7 @@ networks:
   lan-network:
     driver: macvlan
     driver_opts:
-      parent: enp37s0  # NOTE: change this to the interface that your SNMP switch is connected to using `ip addr`
+      parent: wlp3s0  # NOTE: change this to the interface that your SNMP switch is connected to using `ip addr`
     ipam:
       config:
         - subnet: 192.168.1.0/24

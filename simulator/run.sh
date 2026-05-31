@@ -12,18 +12,23 @@ print_help() {
     echo "Starts the simulated environment and enters the main PC"
     echo ""
     echo "Options"
-    echo "  -h, --help    display this help message and exit"
-    echo "  COMPUTERS     the number of secondary computers to start must be a"
-    echo "                positive integer.  Defaults to $DEFAULT_NUM_COMPUTERS"
+    echo "  -h, --help      display this help message and exit"
+    echo "  -n, --no-build  do not build the image(s)"
+    echo "  COMPUTERS       the number of secondary computers to start must be a"
+    echo "                  positive integer.  Defaults to $DEFAULT_NUM_COMPUTERS"
 }
 
 num_computers=$DEFAULT_NUM_COMPUTERS
-
+build=1
 # parse command line arguments
-if [ $# -ge 1 ]; then
+while [ $# -ge 1 ]; do
     if [ "$1" == "--help" ] || [ "$1" == "-h" ]; then
         print_help
         exit 0
+    elif [ "$1" == "--no-build" ] || [ "$1" == "-n" ]; then
+        build=2
+        shift
+        continue
     elif ! [[ $1 =~ ^-?[0-9]+$ ]]; then
         echo "Number of computers must be a number"
         echo "Try '$0 --help' for more information."
@@ -34,13 +39,17 @@ if [ $# -ge 1 ]; then
         exit 1
     fi
     num_computers=$1
-fi
+    shift
+done
 
 # create db dir with correct perms
 mkdir -p db
 sudo chmod 777 db
 
-docker compose build
+if [ "$build" -ne 2 ]; then
+    docker compose build
+fi
+
 # stop if there is an error building
 if [ $? -ne 0 ]; then
     echo Unable to build containers
