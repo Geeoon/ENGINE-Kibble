@@ -3,27 +3,25 @@ import pytest
 import time
 from pymongo.errors import ConnectionFailure, ServerSelectionTimeoutError
 from Kibble.Logging.MongoHandler import MongoHandler
-from Kibble.Logging.EventSchema import ICMP # Changed from ping_event
+from Kibble.Logging import LatencyStructure
 from Kibble.Logging import LogLevel
-from bson import ObjectId # Added for mandatory device_id
+from bson import ObjectId
 from unittest.mock import MagicMock
 import logging
 
-def test_db_connection_invalid_host():
+def test_db_connection_invalid_host(caplog):
     """
     DB Test 3A: Test connection failure with invalid host
     """
-    with pytest.raises((ConnectionFailure, ServerSelectionTimeoutError)):
+    with caplog.at_level(logging.CRITICAL):
         logger = MongoHandler(
             db_name='kibble_test',
-            host='invalid.host.doesnotexist',  # invalid hostname
-            port=27017,
-            user='root',
-            passwd='password',
             client=MongoClient("mongodb://root:password@invalid.host:27017", serverSelectionTimeoutMS=1000)
         )
     
-    print('DB Test 3A: PASS - Invalid host raises error')
+    assert "Unable to connect to MongoDB" in caplog.text
+    logger.close()
+    print('DB Test 3A: PASS - Invalid host caught and logged')
 
 
 def test_db_connection_invalid_port():
@@ -33,17 +31,13 @@ def test_db_connection_invalid_port():
     with pytest.raises((ConnectionFailure, ServerSelectionTimeoutError, ValueError)):
         logger = MongoHandler(
             db_name='kibble_test',
-            host='localhost',
-            port=99999,  # invalid port number
-            user='root',
-            passwd='password',
-            client=MongoClient("mongodb://root:password@invalid.host:27017", serverSelectionTimeoutMS=1000)
+            client=MongoClient("mongodb://root:password@invalid.host:99999", serverSelectionTimeoutMS=1000)
         )
 
     print('DB Test 3B: PASS - Invalid port raises error')
 
 # test to simulate connection loss during operation using mocking
-def test_db_connection_loss_during_operation():
+def test_db_connection_loss_during_operation(caplog):
     mock_client = MagicMock()
     
     logger = MongoHandler(
@@ -60,11 +54,13 @@ def test_db_connection_loss_during_operation():
     
     # Updated to use ICMP to match the required schema
     status_data = {'alive': True, 'latency': 25}
-    record.status = ICMP(status_data=status_data, severity=LogLevel.LOW, device_id=ObjectId())
+    record.status = LatencyStructure(status_data, LogLevel.LOW, device_id=ObjectId())
 
-    with pytest.raises(Exception, match="Connection Lost"):
+    with caplog.at_level(logging.CRITICAL):
         logger.emit(record)
         logger._send_batch() # Trigger the actual network call
+
+    assert "Connection Lost" in caplog.text
     
     # Disarm to prevent atexit noise
     logger.events_collection.insert_many.side_effect = None

@@ -15,6 +15,7 @@ from Kibble.Monitoring import StatusMonitor
 from Kibble.Alerting import Alert
 from Kibble.Detecting import Detector, LatencyDetector
 from Kibble.Retrieval import DeviceRetriever
+from Kibble.Election import LeaderElector, LeaseManager
 
 DEFAULT_MONITOR_INTERFACE_NAME = "default" # set for now, but should be configurable
 
@@ -28,6 +29,9 @@ class Kibble:
         self,
         client: MongoClient,
         monitors: list[StatusMonitor],
+        monitor_id: int = 0,
+        heartbeat_ttl: int = 30,
+        redundancy_factor: int = 2,
         alerters: list[Alert] | None = None,
         detector: Detector = LatencyDetector(),
         interval: int = 10,
@@ -38,6 +42,9 @@ class Kibble:
 
         :param client: MongoClient to use for retrieval
         :param monitors: the monitors to use for detecting device status
+        :param monitor_id: unique integer ID for this monitoring node (lowest ID wins leader election)
+        :param heartbeat_ttl: seconds before a monitor's heartbeat is considered stale
+        :param redundancy_factor: target number of monitors per device for lease assignment
         :param alerters: the alerts to use for alerting faults
         :param detector: the detector to use for determining log levels and alerts
         :param interval: how often to check the status of endpoints in seconds
@@ -58,10 +65,21 @@ class Kibble:
                     "Status interval must be greater than each monitor's timeout"
                 )
 
+        self.monitor_id = monitor_id
         self.monitors = monitors
         self.alerters = alerters or []
         self.detector = detector
         self.interval = interval
+
+        # --- distributed coordination ---
+        self.elector = LeaderElector(
+            client, monitor_id, heartbeat_ttl=heartbeat_ttl
+        )
+        self.lease_manager = LeaseManager(
+            client, monitor_id, ttl=heartbeat_ttl,
+            redundancy_factor=redundancy_factor,
+        )
+        self.elector.register()
 
         self.device_retriever = DeviceRetriever(client=client)
         self.default_device_type_id = self.device_retriever.ensure_device_type(default_device_type, ['ICMP'])
@@ -82,6 +100,13 @@ class Kibble:
         self._last_device_log_time = time.time()
 
         while True:
+            # --- distributed coordination ---
+            self.elector.heartbeat()
+            self.elector.elect_leader()
+            self.lease_manager.renew_leases()
+            self.lease_manager.cleanup_expired()
+            self.lease_manager.acquire_leases(list(self.devices.keys()))
+
             start_time = time.time()
             asyncio.run(self._rescan())
             logs, levels = self._get_logs()
@@ -93,12 +118,13 @@ class Kibble:
 
             self._send_to_loggers(logs, levels)
 
-            # send alerts if needed
+            # send alerts if needed — leader only
             alerts = self.detector.get_alerts()
-            for endpoint in alerts.keys():
-                self.maintainance_logger.info(f"Sending alert(s)")
-                for alerter in self.alerters:
-                    alerter.alert(f"ALERT FOR {endpoint}", alerts[endpoint]['level'])
+            if self.elector.is_leader:
+                for endpoint in alerts.keys():
+                    self.maintainance_logger.info(f"Sending alert(s)")
+                    for alerter in self.alerters:
+                        alerter.alert(f"ALERT FOR {endpoint}", alerts[endpoint]['level'])
 
             # check devices again
             self._get_devices()
@@ -125,9 +151,9 @@ class Kibble:
                     continue
                 level = self.detector.get_level(key, this_status)
                 if this_status.get("telemetry", None):
-                    logs.append(TelemetryStructure(this_status, key, level))
+                    logs.append(TelemetryStructure(this_status, level, device_id=key, monitor_id=self.monitor_id))
                 else:
-                    logs.append(LatencyStructure(this_status, key, level))
+                    logs.append(LatencyStructure(this_status, level, device_id=key, monitor_id=self.monitor_id))
                 levels.append(level)
 
         return logs, levels
@@ -183,3 +209,6 @@ class Kibble:
 
     def end(self, msg: str=""):
         self.maintainance_logger.debug(msg)
+        # graceful shutdown: release leases and deregister from election
+        self.lease_manager.release_leases()
+        self.elector.deregister()

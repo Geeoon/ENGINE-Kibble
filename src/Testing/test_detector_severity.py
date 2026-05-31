@@ -8,7 +8,7 @@ import pytest
 from bson import ObjectId
 from Kibble.Detecting.LatencyDetector import LatencyDetector
 from Kibble.Logging import LogLevel
-from Kibble.Logging.EventSchema import ICMP
+from Kibble.Logging import LatencyStructure
 
 def test_severity_levels_for_different_latencies():
     """
@@ -52,7 +52,7 @@ def test_icmp_event_schema_integration():
     
     # ICMP function requires a device_id (ObjectId)
     dummy_id = ObjectId()
-    event = ICMP(status_data=status, severity=assigned_level, device_id=dummy_id)
+    event = LatencyStructure(status, assigned_level, device_id=dummy_id)
     
     assert event['device_id'] == dummy_id
     assert event['status']['latency_ms'] == 600

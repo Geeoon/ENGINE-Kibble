@@ -19,16 +19,22 @@ EVENT_TYPE_ENDPOINT_UP = "endpoint_up"
 EVENT_TYPE_ENDPOINT_DOWN = "endpoint_down"
 
 
-def LatencyStructure(status_data: dict, device_id: ObjectId, severity: LogLevel = LogLevel.CRITICAL) -> dict:
+def LatencyStructure(
+    status_data: dict,
+    severity: LogLevel = LogLevel.CRITICAL,
+    device_id: Optional[ObjectId] = None,
+    monitor_id: Optional[int] = None,
+) -> dict:
     """Builds an LatencyStructure endpoint-status event document for logging latency based telemetry.
 
     Args:
         status_data: Dict with "alive", "latency", and "last_updated" status.
         severity: Log level (default CRITICAL).
         device_id: Required device ObjectId; must not be None.
+        monitor_id: Integer ID of the monitoring node that produced this event.
 
     Returns:
-        Event dict with schema_version, timestamp, event_type, status, severity_level, and device_id.
+        Event dict with schema_version, timestamp, event_type, status, severity_level, device_id, and monitor_id.
 
     Raises:
         ValueError: If device_id is None.
@@ -49,6 +55,7 @@ def LatencyStructure(status_data: dict, device_id: ObjectId, severity: LogLevel 
         },
         "severity_level": severity.value[0],
         "device_id": device_id,
+        "monitor_id": monitor_id,
     }
     return doc
 

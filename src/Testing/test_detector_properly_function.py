@@ -45,7 +45,7 @@ def test_recovery_from_fault_to_reachable():
     detector.get_level(ip, {'alive': True, 'latency': 15})
     
     recovery_alerts = detector.get_alerts()
-    assert ip not in recovery_alerts, "Recovery should not trigger a new fault alert"
+    assert recovery_alerts.get(ip, {}).get('level') == LogLevel.DEBUG, "Recovery should emit DEBUG level, not a fault alert"
 
 if __name__ == '__main__':
     test_reachable_host_detection_and_silence()
