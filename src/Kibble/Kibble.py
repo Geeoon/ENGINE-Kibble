@@ -35,7 +35,6 @@ class Kibble:
         alerters: list[Alert] | None = None,
         detector: Detector = LatencyDetector(),
         interval: int = 10,
-        default_device_type: Optional[tuple[str, list[str]]] = None,
     ):
         """
         Initializes the Kibble system.
@@ -48,7 +47,6 @@ class Kibble:
         :param alerters: the alerts to use for alerting faults
         :param detector: the detector to use for determining log levels and alerts
         :param interval: how often to check the status of endpoints in seconds
-        :param default_device_type: (name, [protocols]) for a default device_type row
         """
 
         self.maintainance_logger = logging.getLogger("Kibble_Maintainance")
@@ -82,7 +80,6 @@ class Kibble:
         self.elector.register()
 
         self.device_retriever = DeviceRetriever(client=client)
-        self.default_device_type_id = self.device_retriever.ensure_device_type(default_device_type, ['ICMP'])
         # Collections
         self.devices_collection = self.device_retriever.devices_collection
 
@@ -168,34 +165,36 @@ class Kibble:
             pass
 
     def _get_devices(self):
- 
-        previous = dict(self.devices) # used to track changes in the devices configurations
-        self.devices = self.device_retriever.get_devices(
-            default_interface_name=DEFAULT_MONITOR_INTERFACE_NAME
-        )
+        try:
+            previous = dict(self.devices) # used to track changes in the devices configurations
+            self.devices = self.device_retriever.get_devices(
+                default_interface_name=DEFAULT_MONITOR_INTERFACE_NAME
+            )
 
-        for device_id, device in self.devices.items():
-            if previous.get(device_id) != device:
-                if previous and device_id not in previous:
-                    self.maintainance_logger.info(f"Found new device: {device_id}")
-                elif device_id in previous:
-                    self.maintainance_logger.info(
-                        f"Updating device information for {device_id}"
+            for device_id, device in self.devices.items():
+                if previous.get(device_id) != device:
+                    if previous and device_id not in previous:
+                        self.maintainance_logger.info(f"Found new device: {device_id}")
+                    elif device_id in previous:
+                        self.maintainance_logger.info(
+                            f"Updating device information for {device_id}"
+                        )
+                    self.device_retriever.record_device_configuration_if_changed(
+                        device_id,
+                        device,
+                        default_interface_name=DEFAULT_MONITOR_INTERFACE_NAME,
                     )
-                self.device_retriever.record_device_configuration_if_changed(
-                    device_id,
-                    device,
-                    default_interface_name=DEFAULT_MONITOR_INTERFACE_NAME,
-                )
 
-            if (
-                previous.get(device_id) != device
-                and not device.get("ip")
-                and not device.get("hostname")
-            ):
-                self.maintainance_logger.warning(
-                    f"Device {device_id} has no device_configuration snapshot (need ip and/or hostname to monitor)"
-                )
+                if (
+                    previous.get(device_id) != device
+                    and not device.get("ip")
+                    and not device.get("hostname")
+                ):
+                    self.maintainance_logger.warning(
+                        f"Device {device_id} has no device_configuration snapshot (need ip and/or hostname to monitor)"
+                    )
+        except Exception as e:
+            self.maintainance_logger.critical(f"Failed to get the newest devices: {str(e)}")
 
         for id, device in self.devices.items():
             for protocol in device['protocols']:

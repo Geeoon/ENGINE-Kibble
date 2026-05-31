@@ -1,43 +1,7 @@
 [
   {
     "_id": "69a65a1ba9713e22895f8116",
-    "device_ip": "127.0.0.1",
-    "device_type_id": "69a65a1b999323915f30efae"
-  },
-  {
-    "_id": "69a65a1ba9713e22895f8117",
-    "hostname": "doesnotexist.internal",
-    "device_ip": "192.67.67.67",
-    "device_type_id": "69a65a1b999323915f30efae"
-  },
-  {
-    "_id": "69a65a1ba9713e22895f8118",
-    "hostname": "simulator-secondary-1",
-    "device_type_id": "69a65a1b999323915f30efae"
-  },
-  {
-    "_id": "69a65a1ba9713e22895f8119",
-    "hostname": "simulator-secondary-2",
-    "device_type_id": "69a65a1b999323915f30efae"
-  },
-  {
-    "_id": "69a65a1ba9713e22895f811a",
-    "hostname": "simulator-secondary-3",
-    "device_type_id": "69a65a1b999323915f30efae"
-  },
-  {
-    "_id": "69a65a1ba9713e22895f811b",
-    "hostname": "simulator-secondary-4",
-    "device_type_id": "69a65a1b999323915f30efae"
-  },
-  {
-    "_id": "69a65a1ba9713e22895f811c",
-    "hostname": "simulator-secondary-5",
-    "device_type_id": "69a65a1b999323915f30efae"
-  },
-  {
-    "_id": "69a65a2e2b7786f2fc2e37b8",
-    "device_ip": "192.67.67.67",
+    "device_ip": "192.168.1.99",
     "device_type_id": "69a65a1b999323915f30efae"
   }
 ]
