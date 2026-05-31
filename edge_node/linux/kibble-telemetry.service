@@ -1,0 +1,14 @@
+[Unit]
+Description=Kibble Edge Node Telemetry Collector
+After=network.target
+
+[Service]
+Type=simple
+User=kibble
+Group=kibble
+ExecStart=/opt/kibble/edge_agent/.venv/bin/python3 /opt/kibble/edge_agent/main.py
+Restart=on-failure
+RestartSec=10s
+
+[Install]
+WantedBy=multi-user.target

@@ -1,7 +1,7 @@
 [
     {
         "_id": "69a65a1b999323915f30efae",
-        "name": [ "device 1", [ "ICMP" ] ],
-        "protocols_supported": [ "ICMP" ]
+        "name": [ "device 1", [ "SNMP" ] ],
+        "protocols_supported": [ "SNMP" ]
     }
 ]

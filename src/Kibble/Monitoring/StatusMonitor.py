@@ -32,8 +32,8 @@ class StatusMonitor(ABC):
                 ipaddress.ip_address(endpoint['ip'])
             self._status[endpoint['id']] = {
                 'details': {
-                    'ip': endpoint['ip'],
-                    'hostname': endpoint['hostname']
+                    'ip': endpoint.get('ip', None),
+                    'hostname': endpoint.get('hostname', None)
                 },
                 'status': {}
             }

@@ -50,39 +50,38 @@ class LatencyDetector(Detector):
 
     def _add_to_history(self, endpoint, latency, level):
         if not endpoint in self.latency_history:
-            # new endpoint, add a list
+            # New endpoint, initialize a list
             self.latency_history[endpoint] = []
 
-        # if latency is full, pop the elements
-        overfill = len(self.latency_history[endpoint]) - self.depth
-        self.latency_history[endpoint] = self.latency_history[endpoint][overfill:]
-
-        # add latest to list
+        # 1. Add the latest data point FIRST
         self.latency_history[endpoint].append({ 'latency': latency, 'level': level })
 
-    def get_alerts(self) -> dict:
-        """
-        Gets a list of new alerts that should be published.  Shall be called
-        once after the log for each new endpoint is added.
-        
-        :return: a dictionary of endpoitns corresponding to new alerts
-        """
+        # 2. Trim the oldest element ONLY if we exceed the allowed depth.
+        # This ensures we maintain a proper history for escalation checks.
+        if len(self.latency_history[endpoint]) > self.depth:
+            self.latency_history[endpoint].pop(0)
 
+    def get_alerts(self) -> dict:
         # if severity level has increased since the last one, do an alert
         out = {}
         for endpoint in self.latency_history.keys():
             history = self.latency_history[endpoint]
+            
             if len(history) == 0:
                 # skip it, no history
                 continue
+                
             elif len(history) == 1:
-                # there's only one, check if it's alert-worthy
+                # there's only one, check if it's alert-worthy (above DEBUG)
                 if history[0]['level'] > LogLevel.DEBUG:
                     out[endpoint] = { 'level': history[0]['level'] }
                 continue
             
             # if the newest log is of greater severity than all previous in history
-            if history[-1]['level'] > max(h['level'] for h in history):
+            if history[-1]['level'] > max(h['level'] for h in history[:-1]):
                 out[endpoint] = { 'level': history[-1]['level']}
+            # if the newest log is of lower severity than all previous in history
+            elif history[-1]['level'] < min(h['level'] for h in history[:-1]):
+                out[endpoint] = { 'level': history[-1]['level'] }
         
         return out

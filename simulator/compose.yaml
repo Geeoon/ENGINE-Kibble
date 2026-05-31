@@ -7,12 +7,22 @@ services:
     networks:
       kibble-sim-network:
         ipv4_address: 10.1.0.0
+      lan-network:
+        ipv4_address: 192.168.1.150
     build:
       context: ../
       dockerfile: ./simulator/main/Dockerfile
     depends_on:
       - database
     stop_grace_period: 1s  # infinite looping will not respond to SIGTERM
+  daemon:
+    image: kibble-daemon:latest
+    networks:
+      - kibble-sim-network
+    build:
+      context: ../
+      dockerfile: ./simulator/daemon/Dockerfile
+    stop_grace_period: 1s
   secondary:
     image: kibble-secondary:latest
     networks:
@@ -59,3 +69,11 @@ networks:
       config:
         - subnet: 10.0.0.0/8
           ip_range: 10.128.0.0/9
+  lan-network:
+    driver: macvlan
+    driver_opts:
+      parent: enp37s0  # NOTE: change this to the interface that your SNMP switch is connected to using `ip addr`
+    ipam:
+      config:
+        - subnet: 192.168.1.0/24
+          ip_range: 192.168.1.128/25

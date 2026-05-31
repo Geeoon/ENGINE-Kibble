@@ -2,19 +2,22 @@
 Overall system implementation
 """
 
+import asyncio
 import logging
 import time
-import asyncio
 from typing import Optional
 
 from pymongo import MongoClient
 
+from Kibble.Logging.EventSchema import TelemetryStructure
 from Kibble.Logging import LogLevel, LatencyStructure
-from Kibble.Logging.EventSchema import device_info
 from Kibble.Monitoring import StatusMonitor
 from Kibble.Alerting import Alert
 from Kibble.Detecting import Detector, LatencyDetector
 from Kibble.Retrieval import DeviceRetriever
+from Kibble.Election import LeaderElector, LeaseManager
+
+DEFAULT_MONITOR_INTERFACE_NAME = "default" # set for now, but should be configurable
 
 
 class Kibble:
@@ -26,20 +29,24 @@ class Kibble:
         self,
         client: MongoClient,
         monitors: list[StatusMonitor],
+        monitor_id: int = 0,
+        heartbeat_ttl: int = 30,
+        redundancy_factor: int = 2,
         alerters: list[Alert] | None = None,
         detector: Detector = LatencyDetector(),
         interval: int = 10,
-        default_device_type: Optional[tuple[str, list[str]]] = None,
     ):
         """
         Initializes the Kibble system.
 
         :param client: MongoClient to use for retrieval
         :param monitors: the monitors to use for detecting device status
+        :param monitor_id: unique integer ID for this monitoring node (lowest ID wins leader election)
+        :param heartbeat_ttl: seconds before a monitor's heartbeat is considered stale
+        :param redundancy_factor: target number of monitors per device for lease assignment
         :param alerters: the alerts to use for alerting faults
         :param detector: the detector to use for determining log levels and alerts
         :param interval: how often to check the status of endpoints in seconds
-        :param default_device_type: (name, [protocols]) for a default device_type row
         """
 
         self.maintainance_logger = logging.getLogger("Kibble_Maintainance")
@@ -55,14 +62,24 @@ class Kibble:
                 raise ValueError(
                     "Status interval must be greater than each monitor's timeout"
                 )
-            
+
+        self.monitor_id = monitor_id
         self.monitors = monitors
         self.alerters = alerters or []
         self.detector = detector
         self.interval = interval
 
+        # --- distributed coordination ---
+        self.elector = LeaderElector(
+            client, monitor_id, heartbeat_ttl=heartbeat_ttl
+        )
+        self.lease_manager = LeaseManager(
+            client, monitor_id, ttl=heartbeat_ttl,
+            redundancy_factor=redundancy_factor,
+        )
+        self.elector.register()
+
         self.device_retriever = DeviceRetriever(client=client)
-        self.default_device_type_id = self.device_retriever.ensure_device_type(default_device_type, ['ICMP'])
         # Collections
         self.devices_collection = self.device_retriever.devices_collection
 
@@ -80,6 +97,13 @@ class Kibble:
         self._last_device_log_time = time.time()
 
         while True:
+            # --- distributed coordination ---
+            self.elector.heartbeat()
+            self.elector.elect_leader()
+            self.lease_manager.renew_leases()
+            self.lease_manager.cleanup_expired()
+            self.lease_manager.acquire_leases(list(self.devices.keys()))
+
             start_time = time.time()
             asyncio.run(self._rescan())
             logs, levels = self._get_logs()
@@ -91,12 +115,13 @@ class Kibble:
 
             self._send_to_loggers(logs, levels)
 
-            # send alerts if needed
+            # send alerts if needed — leader only
             alerts = self.detector.get_alerts()
-            for endpoint in alerts.keys():
-                self.maintainance_logger.info(f"Sending alert(s)")
-                for alerter in self.alerters:
-                    alerter.alert(f"ALERT FOR {endpoint}", alerts[endpoint]['level'])
+            if self.elector.is_leader:
+                for endpoint in alerts.keys():
+                    self.maintainance_logger.info(f"Sending alert(s)")
+                    for alerter in self.alerters:
+                        alerter.alert(f"ALERT FOR {endpoint}", alerts[endpoint]['level'])
 
             # check devices again
             self._get_devices()
@@ -122,7 +147,10 @@ class Kibble:
                 if not this_status:
                     continue
                 level = self.detector.get_level(key, this_status)
-                logs.append(LatencyStructure(this_status, level, device_id=key))
+                if this_status.get("telemetry", None):
+                    logs.append(TelemetryStructure(this_status, level, device_id=key, monitor_id=self.monitor_id))
+                else:
+                    logs.append(LatencyStructure(this_status, level, device_id=key, monitor_id=self.monitor_id))
                 levels.append(level)
 
         return logs, levels
@@ -137,8 +165,37 @@ class Kibble:
             pass
 
     def _get_devices(self):
-        self.devices = self.device_retriever.get_devices()
-            
+        try:
+            previous = dict(self.devices) # used to track changes in the devices configurations
+            self.devices = self.device_retriever.get_devices(
+                default_interface_name=DEFAULT_MONITOR_INTERFACE_NAME
+            )
+
+            for device_id, device in self.devices.items():
+                if previous.get(device_id) != device:
+                    if previous and device_id not in previous:
+                        self.maintainance_logger.info(f"Found new device: {device_id}")
+                    elif device_id in previous:
+                        self.maintainance_logger.info(
+                            f"Updating device information for {device_id}"
+                        )
+                    self.device_retriever.record_device_configuration_if_changed(
+                        device_id,
+                        device,
+                        default_interface_name=DEFAULT_MONITOR_INTERFACE_NAME,
+                    )
+
+                if (
+                    previous.get(device_id) != device
+                    and not device.get("ip")
+                    and not device.get("hostname")
+                ):
+                    self.maintainance_logger.warning(
+                        f"Device {device_id} has no device_configuration snapshot (need ip and/or hostname to monitor)"
+                    )
+        except Exception as e:
+            self.maintainance_logger.critical(f"Failed to get the newest devices: {str(e)}")
+
         for id, device in self.devices.items():
             for protocol in device['protocols']:
                 found = False
@@ -146,8 +203,11 @@ class Kibble:
                     if protocol == str(monitor):
                         monitor.add_endpoint(additional=[device | {'id': id}])
                         found = True
-                if not found:  # no monitor found for this protocol
+                if not found:
                     self.maintainance_logger.error(f"{id} attempting to use unsupported protocol {protocol}")
 
     def end(self, msg: str=""):
         self.maintainance_logger.debug(msg)
+        # graceful shutdown: release leases and deregister from election
+        self.lease_manager.release_leases()
+        self.elector.deregister()
