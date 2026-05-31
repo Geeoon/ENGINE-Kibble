@@ -9,6 +9,7 @@ from typing import Optional
 
 from pymongo import MongoClient
 
+from Kibble.Logging.EventSchema import TelemetryStructure
 from Kibble.Logging import LogLevel, LatencyStructure
 from Kibble.Monitoring import StatusMonitor
 from Kibble.Alerting import Alert
@@ -149,7 +150,10 @@ class Kibble:
                 if not this_status:
                     continue
                 level = self.detector.get_level(key, this_status)
-                logs.append(LatencyStructure(this_status, level, device_id=key, monitor_id=self.monitor_id))
+                if this_status.get("telemetry", None):
+                    logs.append(TelemetryStructure(this_status, level, device_id=key, monitor_id=self.monitor_id))
+                else:
+                    logs.append(LatencyStructure(this_status, level, device_id=key, monitor_id=self.monitor_id))
                 levels.append(level)
 
         return logs, levels

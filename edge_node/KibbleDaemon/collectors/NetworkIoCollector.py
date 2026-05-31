@@ -5,7 +5,7 @@ NetworkIoCollector class for measuring network I/O throughput.
 import time
 from typing import Any
 import psutil
-from collectors import BaseCollector
+from KibbleDaemon.collectors import BaseCollector
 
 
 class NetworkIoCollector(BaseCollector):
@@ -15,6 +15,8 @@ class NetworkIoCollector(BaseCollector):
     """
 
     def __init__(self) -> None:
+        super().__init__()
+        self.name = "networkio"
         self._prev: tuple[Any, float] | None = None
         self._last_valid: tuple[float, float] | None = None
 

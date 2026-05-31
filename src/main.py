@@ -11,7 +11,7 @@ from Kibble import Kibble
 from Kibble.Alerting import EmailAlert, ScreenAlert
 from Kibble.Logging import MongoHandler
 from Kibble.Logging.EventSchema import device_configuration, interface_configuration
-from Kibble.Monitoring.Active import ICMPMonitor, SCPIMonitor
+from Kibble.Monitoring.Active import ICMPMonitor, SCPIMonitor, DaemonMonitor
 from Kibble.Detecting import LatencyDetector
 import logging
 import argparse
@@ -102,11 +102,12 @@ redundancy_factor = election_config.get("redundancy_factor", 2)
 
 icmp_monitor = ICMPMonitor(timeout=5)
 scpi_monitor = SCPIMonitor(timeout=5)
+daemon_monitor = DaemonMonitor(timeout=5)
 
 try:
     kibble = Kibble(
         client=mongo_client,
-        monitors=[icmp_monitor, scpi_monitor],
+        monitors=[icmp_monitor, scpi_monitor, daemon_monitor],
         monitor_id=monitor_id,
         heartbeat_ttl=heartbeat_ttl,
         redundancy_factor=redundancy_factor,
@@ -123,6 +124,7 @@ maintainance_logger.info(f"Kibble started with monitor_id={monitor_id}, heartbea
 # testing only: add devices to db, if they don't exist, for testing.
 # Keep devices identity-only (asset_tag + device_type_id). Network identity is stored in configuration collections.
 scpi_id = kibble.device_retriever.ensure_device_type('device 2', ['SCPI'])
+daemon_id = kibble.device_retriever.ensure_device_type("device 3", ["daemon"])
 test_devices = [
     {'asset_tag': 1001, 'device_type_id': kibble.default_device_type_id, 'ip': '127.0.0.1', 'hostname': '', 'mac': ''},
     {'asset_tag': 1002, 'device_type_id': kibble.default_device_type_id, 'ip': '', 'hostname': 'doesnotexist.internal', 'mac': ''},
@@ -145,6 +147,15 @@ for id in range(1, 6):
             'ip': '',
             'hostname': f'simulator-scpi-{id}',
             'mac': '',
+        }
+    )
+    test_devices.append(
+        {
+            'asset_tag': 4000 + id,
+            'device_type_id': daemon_id,
+            'ip': '',
+            'hostname': f"simulator-daemon-{id}",
+            'mac': ''
         }
     )
 
