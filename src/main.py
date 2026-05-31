@@ -143,10 +143,9 @@ scpi_id = kibble.device_retriever.ensure_device_type('device 2', ['SCPI'])
 daemon_id = kibble.device_retriever.ensure_device_type("device 3", ["daemon"])
 snmp_id = kibble.device_retriever.ensure_device_type('device 4', ['SNMP'])
 test_devices = [
-    {'asset_tag': 1001, 'device_type_id': icmp_id, 'ip': '127.0.0.1', 'hostname': '', 'mac': ''},
-    {'asset_tag': 1002, 'device_type_id': icmp_id, 'ip': '', 'hostname': 'doesnotexist.internal', 'mac': ''},
-    {'asset_tag': 1003, 'device_type_id': icmp_id, 'ip': '192.67.67.67', 'hostname': '', 'mac': ''},
-    {'asset_tag': 1004, 'device_type_id': snmp_id, 'ip': '192.168.1.99', 'hostname': '', 'mac': ''},  # SNMP switch
+    {'asset_tag': 1004, 'device_type_id': snmp_id, 'ip': '', 'hostname': 'snmp-switch', 'mac': ''},  # SNMP switch
+    {'asset_tag': 1005, 'device_type_id': daemon_id, 'ip': '', 'hostname': 'kibble-1', 'mac': ''},  # raspberry pi
+    {'asset_tag': 1006, 'device_type_id': icmp_id, 'ip': '', 'hostname': 'kibble-2', 'mac': ''},  # raspberry pi
 ]
 for id in range(1, 6):
     test_devices.append(
