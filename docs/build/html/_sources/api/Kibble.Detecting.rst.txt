@@ -4,16 +4,26 @@ Kibble.Detecting package
 Submodules
 ----------
 
-.. toctree::
-   :maxdepth: 4
+Kibble.Detecting.Detector module
+--------------------------------
 
-   Kibble.Detecting.Detector
-   Kibble.Detecting.LatencyDetector
+.. automodule:: Kibble.Detecting.Detector
+   :members:
+   :show-inheritance:
+   :undoc-members:
+
+Kibble.Detecting.LatencyDetector module
+---------------------------------------
+
+.. automodule:: Kibble.Detecting.LatencyDetector
+   :members:
+   :show-inheritance:
+   :undoc-members:
 
 Module contents
 ---------------
 
 .. automodule:: Kibble.Detecting
    :members:
-   :undoc-members:
    :show-inheritance:
+   :undoc-members:

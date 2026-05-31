@@ -4,18 +4,34 @@ Kibble.Logging package
 Submodules
 ----------
 
-.. toctree::
-   :maxdepth: 4
+Kibble.Logging.EventSchema module
+---------------------------------
 
-   Kibble.Logging.EventSchema
-   Kibble.Logging.Logger
-   Kibble.Logging.MongoHandler
-   Kibble.Logging.MongoLogger
+.. automodule:: Kibble.Logging.EventSchema
+   :members:
+   :show-inheritance:
+   :undoc-members:
+
+Kibble.Logging.Logger module
+----------------------------
+
+.. automodule:: Kibble.Logging.Logger
+   :members:
+   :show-inheritance:
+   :undoc-members:
+
+Kibble.Logging.MongoHandler module
+----------------------------------
+
+.. automodule:: Kibble.Logging.MongoHandler
+   :members:
+   :show-inheritance:
+   :undoc-members:
 
 Module contents
 ---------------
 
 .. automodule:: Kibble.Logging
    :members:
-   :undoc-members:
    :show-inheritance:
+   :undoc-members:

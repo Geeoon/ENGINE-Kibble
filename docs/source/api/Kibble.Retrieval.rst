@@ -4,15 +4,18 @@ Kibble.Retrieval package
 Submodules
 ----------
 
-.. toctree::
-   :maxdepth: 4
+Kibble.Retrieval.DeviceRetriever module
+---------------------------------------
 
-   Kibble.Retrieval.DeviceRetriever
+.. automodule:: Kibble.Retrieval.DeviceRetriever
+   :members:
+   :show-inheritance:
+   :undoc-members:
 
 Module contents
 ---------------
 
 .. automodule:: Kibble.Retrieval
    :members:
-   :undoc-members:
    :show-inheritance:
+   :undoc-members:

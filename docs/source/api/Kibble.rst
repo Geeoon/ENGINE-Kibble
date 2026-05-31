@@ -1,7 +1,7 @@
-Kibble Package
+Kibble package
 ==============
 
-Submodules
+Subpackages
 -----------
 
 .. toctree::
@@ -9,14 +9,26 @@ Submodules
 
    Kibble.Alerting
    Kibble.Detecting
+   Kibble.Election
    Kibble.Logging
    Kibble.Monitoring
    Kibble.Retrieval
 
-Module Contents
+Submodules
+----------
+
+Kibble.Kibble module
+--------------------
+
+.. automodule:: Kibble.Kibble
+   :members:
+   :show-inheritance:
+   :undoc-members:
+
+Module contents
 ---------------
 
 .. automodule:: Kibble
    :members:
-   :undoc-members:
    :show-inheritance:
+   :undoc-members:
