@@ -6,12 +6,12 @@ from abc import ABC, abstractmethod
 
 
 class BaseCollector(ABC):
-    def __init__(self):
-        self.name = "Base"
-        
     """
     Abstract class for metric collecting
     """
+
+    def __init__(self):
+        self.name = "Base"
     @abstractmethod
     def read(self) -> float | None:
         """
