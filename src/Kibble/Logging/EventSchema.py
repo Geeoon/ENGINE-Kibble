@@ -59,16 +59,20 @@ def LatencyStructure(
     }
     return doc
 
-def TelemetryStructure(status_data: dict, device_id: ObjectId, severity: LogLevel = LogLevel.CRITICAL) -> dict:
+def TelemetryStructure(status_data: dict,
+                       device_id: ObjectId,
+                       severity: LogLevel = LogLevel.CRITICAL,
+                       monitor_id: Optional[int] = None) -> dict:
     """
     Builds a TelemetryStrcuture endpoint-status event document for logging daemon based telemetry.
 
     :param status_dict: dict with "alive", "latency", "last_updated", and "telemetry".
     :param severity: Log level
     :param device_id: the Device ObjectId
+    :param monitor_id: Integer ID of the monitoring node that produced this event.
     :return: dict with schema_version, timestamp, even_type, status, severity_level, and device_id
     """
-    out = LatencyStructure(status_data, device_id, severity)
+    out = LatencyStructure(status_data=status_data, device_id=device_id, severity=severity, monitor_id=monitor_id)
     out["status"]["telemetry"] = status_data.get("telemetry", None)
     return out
 
