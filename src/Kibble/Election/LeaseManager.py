@@ -89,7 +89,7 @@ class LeaseManager:
                     {"device_id": did, "monitor_id": self.monitor_id}
                 )
                 if existing and existing.get("expires_at", now) > now:
-                    # We already have an active lease – skip.
+                    # We already have an active lease - skip.
                     continue
 
                 # Atomic upsert: insert only if we don't already have one
