@@ -148,7 +148,7 @@ def interface_configuration(device_id:ObjectId, interface_name: str, ip_address:
         default_gateway: Default gateway for this interface.
         hostname: Resolved or configured hostname.
         mac_address: Interface MAC address.
-        applied_date: When this snapshot was observed (used for history and IP→device resolution).
+        applied_date: When this snapshot was observed (used for history and IP->device resolution).
 
     Returns:
         Dict with ``schema_version``, ``device_id``, interface fields, and ``applied_date``.

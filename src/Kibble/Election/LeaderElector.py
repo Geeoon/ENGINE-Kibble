@@ -136,7 +136,7 @@ class LeaderElector:
         if was_leader != self._is_leader:
             role = "LEADER" if self._is_leader else "FOLLOWER"
             self._logger.info(
-                f"LeaderElector: role changed → {role} "
+                f"LeaderElector: role changed -> {role} "
                 f"(leader_id={self._leader_id}, active={active})"
             )
             if self._on_leader_change:

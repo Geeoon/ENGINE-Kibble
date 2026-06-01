@@ -147,6 +147,7 @@ class Kibble:
                 if not this_status:
                     continue
                 level = self.detector.get_level(key, this_status)
+                print(key)
                 if this_status.get("telemetry", None):
                     logs.append(TelemetryStructure(this_status, level, device_id=key, monitor_id=self.monitor_id))
                 else:

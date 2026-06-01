@@ -128,7 +128,6 @@ try:
         redundancy_factor=redundancy_factor,
         alerters=[screen_alert],
         detector=detector,
-        default_device_type=("device 1", ["ICMP"]),
     )
 except Exception as e:
     maintainance_logger.critical(f"Failed to start Kibble: {str(e)}")
@@ -235,6 +234,7 @@ while tries < 25:
     except Exception as e:
         if (time.time() - last_fail) > 300:  # if it's been more than 5 minutes since the last fail
             tries = 1  # reset
+        raise e
         last_fail = time.time()
         maintainance_logger.critical(f"Uncaught exception: {str(e)}.  Attemping to restart the service, try {tries}")
         tries += 1
