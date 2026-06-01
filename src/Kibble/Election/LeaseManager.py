@@ -67,7 +67,7 @@ class LeaseManager:
         :return: list of device IDs for which a new lease was acquired
         """
         acquired = []
-        now = datetime.datetime.now(datetime.timezone.utc)
+        now = datetime.datetime.utcnow()
         expires = now + datetime.timedelta(seconds=self.ttl)
 
         try:
@@ -88,6 +88,7 @@ class LeaseManager:
                 existing = self._collection.find_one(
                     {"device_id": did, "monitor_id": self.monitor_id}
                 )
+
                 if existing and existing.get("expires_at", now) > now:
                     # We already have an active lease - skip.
                     continue
