@@ -26,6 +26,7 @@ RUN python3 -m pip install -r requirements.txt
 
 # add source code to home directory
 COPY ./src .
+COPY ./src/.env ../
 
 # read /dev/null forever, busy loop to prevent container from automatically
 # stopping itself

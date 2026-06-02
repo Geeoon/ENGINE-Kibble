@@ -126,7 +126,7 @@ try:
         monitor_id=monitor_id,
         heartbeat_ttl=heartbeat_ttl,
         redundancy_factor=redundancy_factor,
-        alerters=[screen_alert],
+        alerters=[screen_alert, email_alert],
         detector=detector,
     )
 except Exception as e:
