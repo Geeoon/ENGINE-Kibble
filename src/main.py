@@ -90,9 +90,6 @@ file_alert_handler.setFormatter(formatter)
 alert_logger.addHandler(screen_alert_handler)
 alert_logger.addHandler(file_alert_handler)
 
-screen_alert = ScreenAlert()
-email_alert = EmailAlert()
-
 # latency configuration
 parser = argparse.ArgumentParser()
 parser.add_argument("--low-thresh", type=int)
@@ -103,7 +100,12 @@ parser.add_argument("--community-string", type=str, help="Community string for S
 parser.add_argument("--device-timeout", type=positive_int, help="Timeout for the device", default=5)
 parser.add_argument("--scan-period", type=positive_int, help="How often to scan the network.  Should be at least double the device timeout", default=60)
 parser.add_argument("--threads", type=positive_int, help="The number of threads to launch to do simultaneous device scans.  Should scale with the number of devices.", default=10)
+parser.add_argument("--sender-email", type=str, help="The email account to send alerts from", default="kibblealert@gmail.com")
+parser.add_argument("--receiver-email", type=str, help="The email accoutn to send alerts to", default="kibblealert@gmail.com")
 args = parser.parse_args()
+
+screen_alert = ScreenAlert()
+email_alert = EmailAlert(sender_email=args.sender_email, receiver_email=args.receiver_email)
 
 config = {}
 election_config = {}

@@ -15,8 +15,9 @@ class EmailAlert(Alert):
     """
     EmailAlert class for alerting
     """
-    def __init__(self):
-        pass
+    def __init__(self, sender_email: str="kibblealert@gmail.com", receiver_email: str="kibblealert@gmail.com"):
+        self.sender_email = sender_email
+        self.receiver_email = receiver_email
 
     def alert(self, data: dict, level: LogLevel) -> bool: 
         """
@@ -30,13 +31,10 @@ class EmailAlert(Alert):
         smtp_server = "smtp.gmail.com"
         password = os.getenv('EMAIL_PASSWD')
 
-        sender_email = "kibblealert@gmail.com"
-        receiver_email = "kibblealert@gmail.com"
-        
         message = MIMEMultipart("alternative")
         message["Subject"] = "Kibble Alert"
-        message["From"] = sender_email
-        message["To"] = receiver_email
+        message["From"] = self.sender_email
+        message["To"] = self.receiver_email
     
         text = f"""
             Kibble Alert:
