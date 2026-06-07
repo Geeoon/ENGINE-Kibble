@@ -17,6 +17,13 @@ import logging
 import argparse
 import yaml
 
+# for argument parsing
+def positive_int(value):
+    n = int(value)  # raises ValueError if not an int
+    if n < 1:
+        raise argparse.ArgumentTypeError(f"must be a positive integer, got {value}")
+    return n
+
 formatter = logging.Formatter('%(asctime)s %(levelname)s %(message)s')
 
 # logger for maintainance
@@ -92,6 +99,10 @@ parser.add_argument("--low-thresh", type=int)
 parser.add_argument("--medium-thresh", type=int)
 parser.add_argument("--high-thresh", type=int)
 parser.add_argument("--monitor-id", type=int, help="Unique integer ID for this monitoring node (lowest ID wins leader election)")
+parser.add_argument("--community-string", type=str, help="Community string for SNMP monitor", default='public')
+parser.add_argument("--device-timeout", type=positive_int, help="Timeout for the device", default=5)
+parser.add_argument("--scan-period", type=positive_int, help="How often to scan the network.  Should be at least double the device timeout", default=60)
+parser.add_argument("--threads", type=positive_int, help="The number of threads to launch to do simultaneous device scans.  Should scale with the number of devices.", default=10)
 args = parser.parse_args()
 
 config = {}
@@ -115,10 +126,10 @@ monitor_id = args.monitor_id if args.monitor_id is not None else election_config
 heartbeat_ttl = election_config.get("heartbeat_ttl", 30)
 redundancy_factor = election_config.get("redundancy_factor", 2)
 
-icmp_monitor = ICMPMonitor(timeout=5)
-scpi_monitor = SCPIMonitor(timeout=5)
-snmp_monitor = SNMPMonitor(timeout=5, community='public')  # NOTE: change SNMP community here
-daemon_monitor = DaemonMonitor(timeout=5)
+icmp_monitor = ICMPMonitor(timeout=args.device_timeout, workers=args.threads)
+scpi_monitor = SCPIMonitor(timeout=args.device_timeout, workers=args.threads)
+snmp_monitor = SNMPMonitor(timeout=args.device_timeout, community=args.community_string)
+daemon_monitor = DaemonMonitor(timeout=args.device_timeout, workers=args.threads)
 try:
     kibble = Kibble(
         client=mongo_client,
@@ -128,6 +139,7 @@ try:
         redundancy_factor=redundancy_factor,
         alerters=[screen_alert, email_alert],
         detector=detector,
+        interval=args.scan_period
     )
 except Exception as e:
     maintainance_logger.critical(f"Failed to start Kibble: {str(e)}")
