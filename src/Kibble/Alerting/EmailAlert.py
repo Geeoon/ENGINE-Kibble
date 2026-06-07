@@ -60,7 +60,7 @@ class EmailAlert(Alert):
         # Send email
         context = ssl.create_default_context()
         with smtplib.SMTP_SSL(smtp_server, port, context=context) as server:
-            server.login(sender_email, password)
-            server.sendmail(sender_email, receiver_email, message.as_string())
+            server.login(self.sender_email, password)
+            server.sendmail(self.sender_email, self.receiver_email, message.as_string())
         return True
 
