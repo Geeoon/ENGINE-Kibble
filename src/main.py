@@ -24,6 +24,23 @@ def positive_int(value):
         raise argparse.ArgumentTypeError(f"must be a positive integer, got {value}")
     return n
 
+parser = argparse.ArgumentParser()
+parser.add_argument("--low-thresh", type=int)
+parser.add_argument("--medium-thresh", type=int)
+parser.add_argument("--high-thresh", type=int)
+parser.add_argument("--monitor-id", type=int, help="Unique integer ID for this monitoring node (lowest ID wins leader election)")
+parser.add_argument("--community-string", type=str, help="Community string for SNMP monitor", default='public')
+parser.add_argument("--device-timeout", type=positive_int, help="Timeout for the device", default=5)
+parser.add_argument("--scan-period", type=positive_int, help="How often to scan the network.  Should be at least double the device timeout", default=60)
+parser.add_argument("--threads", type=positive_int, help="The number of threads to launch to do simultaneous device scans.  Should scale with the number of devices.", default=10)
+parser.add_argument("--sender-email", type=str, help="The email account to send alerts from", default="kibblealert@gmail.com")
+parser.add_argument("--receiver-email", type=str, help="The email accoutn to send alerts to", default="kibblealert@gmail.com")
+parser.add_argument("--mongo-host", type=str, help="The MongoDB hostname", default="database.internal")
+parser.add_argument("--mongo-port", type=int, help="The MongoDB port", default=27017)
+parser.add_argument("--mongo-user", type=str, help="The MongoDB username", default="root")
+parser.add_argument("--mongo-pass", type=str, help="The MongoDB password", default="password")
+args = parser.parse_args()
+
 formatter = logging.Formatter('%(asctime)s %(levelname)s %(message)s')
 
 # logger for maintainance
@@ -43,10 +60,10 @@ maintainance_logger.addHandler(screen_maintainance_handler)  # just for debuggin
 maintainance_logger.addHandler(file_maintainance_handler)  # keep a log of the program in case something goes wrong
 
 # set up MongoDB client
-mongo_host = 'database.internal'
-mongo_port = 27017
-mongo_user = 'root'
-mongo_passwd = 'password'
+mongo_host = args.mongo_host
+mongo_port = args.mongo_port
+mongo_user = args.mongo_user
+mongo_passwd = args.mongo_pass
 
 try:
     mongo_client = MongoClient(f"mongodb://{mongo_user}:{mongo_passwd}@{mongo_host}:{mongo_port}")
@@ -89,20 +106,6 @@ file_alert_handler.setFormatter(formatter)
 # attach handlers
 alert_logger.addHandler(screen_alert_handler)
 alert_logger.addHandler(file_alert_handler)
-
-# latency configuration
-parser = argparse.ArgumentParser()
-parser.add_argument("--low-thresh", type=int)
-parser.add_argument("--medium-thresh", type=int)
-parser.add_argument("--high-thresh", type=int)
-parser.add_argument("--monitor-id", type=int, help="Unique integer ID for this monitoring node (lowest ID wins leader election)")
-parser.add_argument("--community-string", type=str, help="Community string for SNMP monitor", default='public')
-parser.add_argument("--device-timeout", type=positive_int, help="Timeout for the device", default=5)
-parser.add_argument("--scan-period", type=positive_int, help="How often to scan the network.  Should be at least double the device timeout", default=60)
-parser.add_argument("--threads", type=positive_int, help="The number of threads to launch to do simultaneous device scans.  Should scale with the number of devices.", default=10)
-parser.add_argument("--sender-email", type=str, help="The email account to send alerts from", default="kibblealert@gmail.com")
-parser.add_argument("--receiver-email", type=str, help="The email accoutn to send alerts to", default="kibblealert@gmail.com")
-args = parser.parse_args()
 
 screen_alert = ScreenAlert()
 email_alert = EmailAlert(sender_email=args.sender_email, receiver_email=args.receiver_email)
