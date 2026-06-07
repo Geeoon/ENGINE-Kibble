@@ -1,5 +1,5 @@
 # ENGINE Kibble project
-## Installation
+## Main Monitor Installation
 ### Linux
 [TODO]
 ### Windows
@@ -40,3 +40,10 @@ options:
   --mongo-pass MONGO_PASS
                         The MongoDB password
 ```
+
+
+## Custom Daemon Installation
+### Linux
+[TODO]
+### Windows
+[TODO]
