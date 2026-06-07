@@ -2,8 +2,6 @@ services:
   main:
     image: kibble-main:latest
     container_name: kibble-main-container
-    environment:
-      - CONN_STR=mongodb://root:password@database.internal
     networks:
       kibble-sim-network:
         ipv4_address: 10.1.0.0
@@ -76,7 +74,7 @@ networks:
   lan-network:
     driver: macvlan
     driver_opts:
-      parent: wlp3s0  # NOTE: change this to the interface that your SNMP switch is connected to using `ip addr`
+      parent: wlp39s0  # NOTE: change this to the interface that your SNMP switch is connected to using `ip addr`
     ipam:
       config:
         - subnet: 192.168.1.0/24

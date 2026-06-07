@@ -117,7 +117,7 @@ redundancy_factor = election_config.get("redundancy_factor", 2)
 
 icmp_monitor = ICMPMonitor(timeout=5)
 scpi_monitor = SCPIMonitor(timeout=5)
-snmp_monitor = SNMPMonitor(timeout=5, community='public')
+snmp_monitor = SNMPMonitor(timeout=5, community='public')  # NOTE: change SNMP community here
 daemon_monitor = DaemonMonitor(timeout=5)
 try:
     kibble = Kibble(
@@ -134,83 +134,6 @@ except Exception as e:
     quit()
 
 maintainance_logger.info(f"Kibble started with monitor_id={monitor_id}, heartbeat_ttl={heartbeat_ttl}s, redundancy_factor={redundancy_factor}")
-
-# testing only: add devices to db, if they don't exist, for testing.
-# Keep devices identity-only (asset_tag + device_type_id). Network identity is stored in configuration collections.
-icmp_id = kibble.device_retriever.ensure_device_type('device 1', ['ICMP'])
-scpi_id = kibble.device_retriever.ensure_device_type('device 2', ['SCPI'])
-daemon_id = kibble.device_retriever.ensure_device_type("device 3", ["daemon"])
-snmp_id = kibble.device_retriever.ensure_device_type('device 4', ['SNMP'])
-test_devices = [
-    {'asset_tag': 1004, 'device_type_id': snmp_id, 'ip': '', 'hostname': 'snmp-switch', 'mac': ''},  # SNMP switch
-    {'asset_tag': 1005, 'device_type_id': daemon_id, 'ip': '', 'hostname': 'kibble-1', 'mac': ''},  # raspberry pi
-    {'asset_tag': 1006, 'device_type_id': icmp_id, 'ip': '', 'hostname': 'kibble-2', 'mac': ''},  # raspberry pi
-]
-for id in range(1, 6):
-    test_devices.append(
-        {
-            'asset_tag': 2000 + id,
-            'device_type_id': icmp_id,
-            'ip': '',
-            'hostname': f'simulator-secondary-{id}',
-            'mac': '',
-        }
-    )
-    test_devices.append(
-        {
-            'asset_tag': 3000 + id,
-            'device_type_id': scpi_id,
-            'ip': '',
-            'hostname': f'simulator-scpi-{id}',
-            'mac': '',
-        }
-    )
-    test_devices.append(
-        {
-            'asset_tag': 4000 + id,
-            'device_type_id': daemon_id,
-            'ip': '',
-            'hostname': f"simulator-daemon-{id}",
-            'mac': ''
-        }
-    )
-
-db = mongo_status_handler.db
-for test_device in test_devices:
-    db['devices'].update_one(
-        {'asset_tag': test_device['asset_tag']},
-        {
-            '$setOnInsert': {
-                'asset_tag': test_device['asset_tag'],
-                'device_type_id': test_device['device_type_id'],
-            }
-        },
-        upsert=True,
-    )
-
-# Initialize one configuration snapshot per seeded device if none exists.
-for test_device in test_devices:
-    dev = db['devices'].find_one({'asset_tag': test_device['asset_tag']}, {'_id': 1})
-    if dev is None:
-        continue
-    oid = dev['_id']
-    if db['device_configurations'].find_one({'device_id': oid}, projection={'_id': 1}) is not None:
-        continue
-
-    applied_date = datetime.datetime.now(datetime.timezone.utc)
-    iface_doc = interface_configuration(
-        oid,
-        'default',
-        str(test_device.get('ip') or ''),
-        '',
-        '',
-        str(test_device.get('hostname') or ''),
-        str(test_device.get('mac') or ''),
-        applied_date,
-    )
-    iface_id = kibble.device_retriever.insert_interface_configuration(iface_doc)
-    doc = device_configuration(oid, [iface_id], applied_date)
-    kibble.device_retriever.insert_device_configuration(doc)
 
 # --- graceful shutdown ---
 def _graceful_shutdown(*_args):
