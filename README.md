@@ -12,7 +12,8 @@ Optional:
 - **MongoDB Compass** - GUI for browsing the `kibble` database
 - **mongosh** - MongoDB shell (included in the main simulator container)
 
-## Quick start
+## Quick start (simulator)
+This is the fastest way to try Kibble. **Docker Desktop must be running** before you begin. 
 
 ```bash
 git clone https://github.com/Geeoon/ENGINE-Kibble.git
@@ -25,30 +26,30 @@ pip install -r src/Kibble/requirements.txt
 cd simulator
 ./run.sh
 ```
-
-Inside the main container shell:
+`run.sh` opens a shell inside `kibble-main-container`. When you **exit that shell**, the whole stack is torn down 
+Inside the main container shell, start the monitor:
 
 ```bash
 cd /tmp
 ./start.sh
 ```
+or  run
 
-In another terminal on your host, add a device:
-
-```bash
-cd ENGINE-Kibble/src
-source ../.venv/bin/activate
-python manage_devices.py add --asset-tag 1001 --type icmp --hostname simulator-secondary-1
+```
+python3 main.py
 ```
 
-Open MongoDB Compass with:
+To see all data logs, one can open MongoDB Compass (https://www.mongodb.com/try/download/compass) with:
 
 ```
 mongodb://root:password@localhost:27017
 ```
+
 In MongoDB Compass devices and configurations can also be manually added/removed.
+Open the **`kibble`** database and inspect **`timeseries_events`** for live probe results.
 
 ## Main Monitor Installation
+Use this path when you want to run the monitor on your **host machine** (outside Docker) against a local MongoDB container.
 ### Linux
 
 1. **Clone the repository**
@@ -163,6 +164,12 @@ In MongoDB Compass devices and configurations can also be manually added/removed
    cd /tmp
    python main.py
    ```
+   or
+   ```bash
+   cd /tmp
+   ./start.sh
+   ```
+   (`./start.sh` and `python main.py` are equivalent inside the container)
 
    **On the host machine:**
 
@@ -227,6 +234,16 @@ Start the database container:
 ```bash
 cd simulator && docker compose up database -d
 ```
+#### Collections
+
+| Collection                  | Purpose                                      |
+|-----------------------------|----------------------------------------------|
+| `devices`                   | Device identity (`asset_tag`, `device_type_id`) |
+| `device_types`              | Device type definitions and supported protocols |
+| `device_configurations`     | Which interfaces are active for a device     |
+| `interface_configurations`  | IP, hostname, MAC, and other network details |
+| `timeseries_events`         | Monitoring events and latency readings       |
+
 
 #### Device configuration tool (`manage_devices.py`)
 
@@ -241,8 +258,14 @@ Use `src/manage_devices.py` to add or remove monitored devices in MongoDB from t
 | `--type`                | `devices.device_type_id` → `device_types` |
 | `--ip`, `--hostname`, `--mac` | `interface_configurations` and `device_configurations` |
 
-**Workflow:**
+**Workflow (simulator — devices are auto-seeded):**
 
+1. Start the simulator (or at least the MongoDB container)
+2. Start the monitor — `main.py` seeds simulator devices on first run
+3. Inspect results in Compass (`timeseries_events`)
+4. Optionally add more devices with `manage_devices.py` while the monitor runs
+
+**Workflow (host / custom devices — manual setup):**
 1. Start MongoDB
 2. Add devices with `manage_devices.py`
 3. Verify in Compass (see below)
@@ -269,18 +292,19 @@ python manage_devices.py add --asset-tag 1001 --type icmp --ip 192.168.1.10
 # Ping a device by hostname
 python manage_devices.py add --asset-tag 1002 --type icmp --hostname my-server.local
 
-# Add an SCPI instrument in the simulator
-python manage_devices.py add --asset-tag 2001 --type scpi --hostname simulator-scpi-1
+# Add an SCPI instrument in the simulator (asset 3001 is auto-seeded; use a new tag to add another)
+python manage_devices.py add --asset-tag 9002 --type scpi --hostname simulator-scpi-1
 
 # Custom device type
 python manage_devices.py add --asset-tag 3001 --type-name "custom probe" --protocols ICMP --ip 10.0.0.5
 ```
 
-Inside the main simulator container:
+Inside the main simulator container (open a second shell with `docker exec -it kibble-main-container bash` while the monitor runs):
 
 ```bash
+cd /tmp
 python manage_devices.py --mongo-host database.internal add \
-  --asset-tag 1001 --type icmp --hostname simulator-secondary-1
+  --asset-tag 9001 --type icmp --hostname simulator-secondary-1
 ```
 
 Re-running `add` with the same `--asset-tag` updates the device. A new configuration snapshot is recorded only when IP, hostname, or MAC changes.
@@ -292,6 +316,29 @@ python manage_devices.py remove --asset-tag 1001
 ```
 
 This deletes the device and its associated configuration records. Historical `timeseries_events` are not deleted.
+
+**CLI reference**
+
+```text
+usage: manage_devices.py [-h] [--mongo-host MONGO_HOST] [--mongo-port MONGO_PORT]
+                         {add,remove} ...
+
+options:
+  --mongo-host MONGO_HOST   default: localhost (use database.internal in Docker)
+  --mongo-port MONGO_PORT   default: 27017
+
+add:
+  --asset-tag ASSET_TAG     required
+  --type {daemon,icmp,scpi,snmp}
+  --type-name TYPE_NAME     requires --protocols
+  --protocols PROTOCOLS [PROTOCOLS ...]
+  --ip IP
+  --hostname HOSTNAME
+  --mac MAC
+
+remove:
+  --asset-tag ASSET_TAG     required
+```
 
 ### Command-Line Arguments
 ```
@@ -325,6 +372,25 @@ options:
   --mongo-pass MONGO_PASS
                         The MongoDB password
 ```
+
+
+#### MongoDB Compass
+
+[MongoDB Compass](https://www.mongodb.com/products/tools/compass) provides a GUI for inspecting the `kibble` database.
+**Connect:**
+
+1. Install Compass from the [MongoDB download page](https://www.mongodb.com/try/download/compass).
+2. Start the database container: `cd simulator && docker compose up database -d`
+3. Paste this connection string:
+
+   ```
+   mongodb://root:password@localhost:27017
+   ```
+
+4. Open the **`kibble`** database.
+
+If Compass asks for an authentication database, use **`admin`**.
+
 
 
 ## Custom Daemon Installation
