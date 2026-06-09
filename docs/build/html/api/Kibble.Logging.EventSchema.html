@@ -59,7 +59,7 @@
 
 <dl class="py function">
 <dt class="sig sig-object py" id="Kibble.Logging.EventSchema.TelemetryStructure">
-<span class="sig-prename descclassname"><span class="pre">Kibble.Logging.EventSchema.</span></span><span class="sig-name descname"><span class="pre">TelemetryStructure</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">status_data</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">dict</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">device_id</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bson.ObjectId</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">severity</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="Kibble.Logging.Logger.html#Kibble.Logging.Logger.LogLevel" title="Kibble.Logging.Logger.LogLevel"><span class="pre">LogLevel</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">LogLevel.CRITICAL</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">dict</span></span></span><a class="headerlink" href="#Kibble.Logging.EventSchema.TelemetryStructure" title="Link to this definition">¶</a></dt>
+<span class="sig-prename descclassname"><span class="pre">Kibble.Logging.EventSchema.</span></span><span class="sig-name descname"><span class="pre">TelemetryStructure</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">status_data</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">dict</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">device_id</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bson.ObjectId</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">severity</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="Kibble.Logging.Logger.html#Kibble.Logging.Logger.LogLevel" title="Kibble.Logging.Logger.LogLevel"><span class="pre">LogLevel</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">LogLevel.CRITICAL</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">monitor_id</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">dict</span></span></span><a class="headerlink" href="#Kibble.Logging.EventSchema.TelemetryStructure" title="Link to this definition">¶</a></dt>
 <dd><p>Builds a TelemetryStrcuture endpoint-status event document for logging daemon based telemetry.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
@@ -67,6 +67,7 @@
 <li><p><strong>status_dict</strong> – dict with “alive”, “latency”, “last_updated”, and “telemetry”.</p></li>
 <li><p><strong>severity</strong> – Log level</p></li>
 <li><p><strong>device_id</strong> – the Device ObjectId</p></li>
+<li><p><strong>monitor_id</strong> – Integer ID of the monitoring node that produced this event.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
@@ -147,7 +148,7 @@
 <li><p><strong>default_gateway</strong> – Default gateway for this interface.</p></li>
 <li><p><strong>hostname</strong> – Resolved or configured hostname.</p></li>
 <li><p><strong>mac_address</strong> – Interface MAC address.</p></li>
-<li><p><strong>applied_date</strong> – When this snapshot was observed (used for history and IP→device resolution).</p></li>
+<li><p><strong>applied_date</strong> – When this snapshot was observed (used for history and IP-&gt;device resolution).</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
@@ -189,8 +190,10 @@
 <li class="toctree-l1"><a class="reference internal" href="../installation.html">Installation and Setup</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../configuration.html">Configuration Parameters</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../database_schema.html">Database Schema</a></li>
-<li class="toctree-l1 current"><a class="reference internal" href="modules.html">Kibble</a><ul class="current">
-<li class="toctree-l2 current"><a class="reference internal" href="Kibble.html">Kibble Package</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="modules.html">src</a><ul class="current">
+<li class="toctree-l2 current"><a class="reference internal" href="Kibble.html">Kibble package</a></li>
+<li class="toctree-l2"><a class="reference internal" href="main.html">main module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="manage_devices.html">manage_devices module</a></li>
 </ul>
 </li>
 </ul>
@@ -199,8 +202,8 @@
 <h3>Related Topics</h3>
 <ul>
   <li><a href="../index.html">Documentation overview</a><ul>
-  <li><a href="modules.html">Kibble</a><ul>
-  <li><a href="Kibble.html">Kibble Package</a><ul>
+  <li><a href="modules.html">src</a><ul>
+  <li><a href="Kibble.html">Kibble package</a><ul>
   <li><a href="Kibble.Logging.html">Kibble.Logging package</a><ul>
       <li>Previous: <a href="Kibble.Logging.html" title="previous chapter">Kibble.Logging package</a></li>
       <li>Next: <a href="Kibble.Logging.Logger.html" title="next chapter">Kibble.Logging.Logger module</a></li>

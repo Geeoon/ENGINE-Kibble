@@ -12,13 +12,10 @@ Subpackages
 Submodules
 ----------
 
-Kibble.Monitoring.StatusMonitor module
---------------------------------------
+.. toctree::
+   :maxdepth: 4
 
-.. automodule:: Kibble.Monitoring.StatusMonitor
-   :members:
-   :show-inheritance:
-   :undoc-members:
+   Kibble.Monitoring.StatusMonitor
 
 Module contents
 ---------------

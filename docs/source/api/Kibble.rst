@@ -17,13 +17,10 @@ Subpackages
 Submodules
 ----------
 
-Kibble.Kibble module
---------------------
+.. toctree::
+   :maxdepth: 4
 
-.. automodule:: Kibble.Kibble
-   :members:
-   :show-inheritance:
-   :undoc-members:
+   Kibble.Kibble
 
 Module contents
 ---------------

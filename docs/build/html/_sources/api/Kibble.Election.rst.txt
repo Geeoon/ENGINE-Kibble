@@ -4,21 +4,11 @@ Kibble.Election package
 Submodules
 ----------
 
-Kibble.Election.LeaderElector module
-------------------------------------
+.. toctree::
+   :maxdepth: 4
 
-.. automodule:: Kibble.Election.LeaderElector
-   :members:
-   :show-inheritance:
-   :undoc-members:
-
-Kibble.Election.LeaseManager module
------------------------------------
-
-.. automodule:: Kibble.Election.LeaseManager
-   :members:
-   :show-inheritance:
-   :undoc-members:
+   Kibble.Election.LeaderElector
+   Kibble.Election.LeaseManager
 
 Module contents
 ---------------
