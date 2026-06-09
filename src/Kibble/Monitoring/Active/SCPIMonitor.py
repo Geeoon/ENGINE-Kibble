@@ -10,8 +10,8 @@ from concurrent.futures import ThreadPoolExecutor
 from Kibble.Monitoring import StatusMonitor
 
 class SCPIMonitor(StatusMonitor):
-    """
-    Monitors the status of endpoints using SCPI *IDN? commands 
+    r"""
+    Monitors the status of endpoints using SCPI \*IDN? commands 
     """
 
     def __init__(self, endpoints: list[str]=[], timeout: int=10, workers: int=5, port: int=5025):
@@ -65,10 +65,10 @@ class SCPIMonitor(StatusMonitor):
             return None
 
     async def _send_idn_await_reply(self, target: str) -> tuple[bool, int, int]:
-        """
-        Sends a SCPI *IDN? and waits for a reply
+        r"""
+        Sends a SCPI \*IDN? and waits for a reply
         
-        :param target: the target to send the *IDN? request
+        :param target: the target to send the \*IDN? request
         :return: whether or not it's alive, the latency in milliseconds, and
                 the timestamp of when the reply was received in milliseconds
                 (or when it timed out)
