@@ -35,11 +35,11 @@ cd /tmp
 ```
 or  run
 
-```
-python3 main.py
-```
+Or run `python3 main.py` directly (equivalent inside the container).
 
-To see all data logs, one can open MongoDB Compass (https://www.mongodb.com/try/download/compass) with:
+On first run, `main.py` **automatically seeds** test devices (`simulator-secondary-1` … `5`, `simulator-scpi-1` … `5`, and a few others). No manual setup is required.
+
+In **another terminal** on your host, open [MongoDB Compass](https://www.mongodb.com/try/download/compass) with:
 
 ```
 mongodb://root:password@localhost:27017
@@ -67,18 +67,8 @@ Use this path when you want to run the monitor on your **host machine** (outside
    pip install -r src/Kibble/requirements.txt
    ```
 3. **Configure email alerts (optional)**
-
-   ```bash
-   cp .env.example .env
-   ```
-
-   Edit `.env` and set your Gmail app password:
-
-   ```
-   EMAIL_PASSWD=your_app_password_here
-   ```
-
-   Screen/Terminal alerts work without this step.
+   
+### TODO!!
 
 4. **Start MongoDB**
 
@@ -134,12 +124,7 @@ Use this path when you want to run the monitor on your **host machine** (outside
    pip install -r src/Kibble/requirements.txt
    ```
 3. **Configure email alerts (optional)**
-
-   ```powershell
-   copy .env.example .env
-   ```
-
-   Edit `.env` and set `EMAIL_PASSWD` to your Gmail app password.
+### TODO!!!
 
 4. **Start MongoDB with Docker Desktop**
 
@@ -258,14 +243,14 @@ Use `src/manage_devices.py` to add or remove monitored devices in MongoDB from t
 | `--type`                | `devices.device_type_id` → `device_types` |
 | `--ip`, `--hostname`, `--mac` | `interface_configurations` and `device_configurations` |
 
-**Workflow (simulator — devices are auto-seeded):**
+**Workflow (simulator - devices are auto-seeded):**
 
 1. Start the simulator (or at least the MongoDB container)
-2. Start the monitor — `main.py` seeds simulator devices on first run
+2. Start the monitor - `main.py` seeds simulator devices on first run
 3. Inspect results in Compass (`timeseries_events`)
 4. Optionally add more devices with `manage_devices.py` while the monitor runs
 
-**Workflow (host / custom devices — manual setup):**
+**Workflow (host / custom devices - manual setup):**
 1. Start MongoDB
 2. Add devices with `manage_devices.py`
 3. Verify in Compass (see below)
