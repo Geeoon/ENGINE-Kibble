@@ -147,14 +147,14 @@ Use this path when you want to run the monitor on your **host machine** (outside
 
    ```bash
    cd /tmp
-   python main.py
+   python3 main.py
    ```
    or
    ```bash
    cd /tmp
    ./start.sh
    ```
-   (`./start.sh` and `python main.py` are equivalent inside the container)
+   (`./start.sh` and `python3 main.py` are equivalent inside the container)
 
    **On the host machine:**
 
