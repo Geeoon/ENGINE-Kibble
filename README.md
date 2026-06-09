@@ -67,10 +67,13 @@ Use this path when you want to run the monitor on your **host machine** (outside
    pip install -r src/Kibble/requirements.txt
    ```
 3. **Configure email alerts (optional)**
-   
-### TODO!!
+4. 
+   - Create a Gmail email account with an app password
+   - Modify the main.py args.sender_email and args.reciever_email
+   - Modify the .env to set the EMAIL_PASSWD to the app passwork
 
-4. **Start MongoDB**
+
+5. **Start MongoDB**
 
    Either run the full simulator:
 
@@ -86,7 +89,7 @@ Use this path when you want to run the monitor on your **host machine** (outside
    mkdir -p db && sudo chmod 777 db
    docker compose up database -d
    ```
-5. **Run the monitor**
+6. **Run the monitor**
 
    **Inside the simulator container:**
 
@@ -124,7 +127,10 @@ Use this path when you want to run the monitor on your **host machine** (outside
    pip install -r src/Kibble/requirements.txt
    ```
 3. **Configure email alerts (optional)**
-### TODO!!!
+
+   - Create a Gmail email account with an app password
+   - Modify the main.py args.sender_email and args.reciever_email
+   - Modify the .env to set the EMAIL_PASSWD to the app passwork
 
 4. **Start MongoDB with Docker Desktop**
 
