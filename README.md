@@ -386,6 +386,18 @@ If Compass asks for an authentication database, use **`admin`**.
 
 ## Custom Daemon Installation
 ### Linux
-[TODO]
+   - Copy edge_node directory onto device to be monitored
+
+   ```
+   cd edge_node/linux/
+   ./install.sh
+   ```
+
 ### Windows
-[TODO]
+   - Copy edge_node directory onto device to be monitored
+   - Open Powershell as administrator
+
+   ```
+   cd edge_node/windows/
+   ./install.ps1
+   ```
